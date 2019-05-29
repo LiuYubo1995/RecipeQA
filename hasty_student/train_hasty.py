@@ -227,12 +227,23 @@ for recipe in train_data:
     for step in recipe['choice_list']: 
         new_choice.append(process(step))
     recipe_choice.append(new_choice)
-    recipe_answer.append(recipe['answer'])  
+    recipe_answer.append(recipe['answer'])
+
 
 
 
 
 def main():
+    def accuracy(preds, y):
+        #round predictions to the closest integer
+        preds = F.softmax(preds, dim=1)
+        correct = 0 
+        pred = preds.max(1, keepdim=True)[1]
+        correct += pred.eq(y.view_as(pred)).sum().item()
+        #convert into float for division 
+        acc = correct/len(y)
+
+        return acc
     def train_run(model, X_train, y_train, optimizer, criterion, X_choice, batch_size):
         epoch_loss = 0
         epoch_acc = 0
@@ -248,16 +259,53 @@ def main():
             # print('@@@@@@@@@@')
             # print(batch_label.shape)
             output = torch.cat(output, 0).view(-1, len(batch_phrase))
-            output = F.softmax(output, dim=0).permute(1,0)
+            output = output.permute(1, 0)
             loss = criterion(output, batch_label)
-            #acc = binary_accuracy(output, batch_label)
+            acc = accuracy(output, batch_label)
             loss.backward() 
             optimizer.step()
             epoch_loss += loss.item() 
-            #epoch_acc += acc 
+            epoch_acc += acc 
+            print('successful', 'acc this round', acc, 'epoch_acc',epoch_acc)
             print('successful', 'loss this round', loss, 'epoch_loss',epoch_loss)
+
         
-        return epoch_loss / len(X_train)#, epoch_acc / len(X_train) 
+        return epoch_loss / len(X_train), epoch_acc / len(X_train) 
+
+
+    # def eval_run(model, X_test, y_test, criterion):
+    # epoch_loss = 0
+    # epoch_acc = 0
+    # epoch_f1 = 0
+    # model.eval()
+
+    # with torch.no_grad():
+    #     for batch_phrase, batch_label in tqdm(zip(X_test, y_test)):
+    #         predictions = model(batch_phrase).squeeze(1)
+    #         loss = criterion(predictions, batch_label)
+    #         acc = binary_accuracy(predictions, batch_label)
+    #         f1 = f1_score(predictions, batch_label)
+    #         epoch_loss += loss.item()
+    #         epoch_acc += acc
+    #         epoch_f1 += f1
+    
+    # return epoch_loss / len(X_test), epoch_acc / len(X_test), epoch_f1 / len(X_test)
+
+
+    def shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer):
+        #shuffle
+        combine = list(zip(recipe_context,recipe_question,recipe_choice,recipe_answer))
+        np.random.shuffle(combine)
+        recipe_context_shuffled,recipe_question_shuffled, recipe_choice_shuffled, recipe_answer_shuffled = zip(*combine)
+        recipe_context_shuffled = list(recipe_context_shuffled)
+        recipe_question_shuffled = list(recipe_question_shuffled) 
+        recipe_choice_shuffled = list(recipe_choice_shuffled)
+        recipe_answer_shuffled = list(recipe_answer_shuffled)
+        return recipe_context_shuffled,recipe_question_shuffled, recipe_choice_shuffled, recipe_answer_shuffled
+
+
+
+
     batch_size = 100
     LR = 0.001
     EMBEDDING_DIM = 300
@@ -281,16 +329,19 @@ def main():
     model = model.to(device)
     criterion = criterion.to(device)
     for epoch in tqdm(range(N_EPOCHS)):
+
         print(epoch)
+
+        recipe_context_new,recipe_question_new,recipe_choice_new,recipe_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
         b_train = []
         b_train_answer = []
         b_train_choice = []
-        for i in tqdm(range(0, len(recipe_question), batch_size)):
-            a = recipe_question[i : i + batch_size]
+        for i in tqdm(range(0, len(recipe_question_new), batch_size)):
+            a = recipe_question_new[i : i + batch_size]
             b_train.append(a)  
-            c = recipe_choice[i : i + batch_size]
+            c = recipe_choice_new[i : i + batch_size]
             b_train_choice.append(c)
-            actual_scores = recipe_answer[i : i + batch_size]
+            actual_scores = recipe_answer_new[i : i + batch_size]
             if torch.cuda.is_available():
                 actual_scores = torch.LongTensor(actual_scores).cuda()
             else:
@@ -300,9 +351,8 @@ def main():
         
 
     
-        train_loss = train_run(model, b_train, b_train_answer, optimizer, criterion, b_train_choice, batch_size)
+        train_loss, train_acc = train_run(model, b_train, b_train_answer, optimizer, criterion, b_train_choice, batch_size)
         print('train_loss', train_loss)
-
     # c = list(zip(X_train,y_train))
     # d = list(zip(X_valid,y_valid))
     # e = list(zip(X_test,y_test))

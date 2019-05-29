@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import numpy as np
@@ -69,7 +68,7 @@ class ChoiceNet(nn.Module):
             character_ids = batch_to_ids(sentences)
         embeddings = self.elmo(character_ids)['elmo_representations'][0]
         #embedded = self.dropout(embeddings) 
-        embedded = embeddings.permute(1, 0 , 2)
+        embedded = embeddings.permute(1, 0, 2) 
         # print('@@@@@@@@@@@@@@@@@@@@')
         # print(embedded.size()) 
         output, (hidden,_) = self.lstm(embedded)
