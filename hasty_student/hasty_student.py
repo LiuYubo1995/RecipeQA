@@ -127,13 +127,14 @@ class HierAttNet(nn.Module):
             output_list.append(output) 
         output = torch.cat(output_list, 0)
         output, hidden_output_question = self.sent_att_net(output)
-        hidden_output_question = self.fc1(hidden_output_question)
+        #hidden_output_question = self.fc1(hidden_output_question)
         #print(hidden_output.size()) 
         output_choice_list = []
         for i in input_choice:  
             output_choice, hidden_output_choice = self.choice(i)
-            hidden_output_choice = self.fc2(hidden_output_choice)
-            similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
+            #hidden_output_choice = self.fc2(hidden_output_choice)
+            similarity_scores = torch.sum(torch.mul(hidden_output_question, hidden_output_choice), dim=1)
+            #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             
         #print('successfulllllllllllllllllllllllllllllll')

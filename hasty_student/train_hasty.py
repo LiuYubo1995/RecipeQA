@@ -353,131 +353,14 @@ def main():
     
         train_loss, train_acc = train_run(model, b_train, b_train_answer, optimizer, criterion, b_train_choice, batch_size)
         print('train_loss', train_loss)
-    # c = list(zip(X_train,y_train))
-    # d = list(zip(X_valid,y_valid))
-    # e = list(zip(X_test,y_test))
-    # for epoch in tqdm(range(N_EPOCHS)):
-    #     print(epoch)
-    #     np.random.shuffle(c)
-    #     X_train,y_train = zip(*c)
-    #     X_train = list(X_train)
-    #     y_train = list(y_train)
-    #     b_train = [] 
-    #     b_train_y = []
-    #     for i in tqdm(range(0,len(X_train), batch_size)):   
-    #         a = X_train[i : i + batch_size] # Batch Size x Sequence Length     
-    #         b_train.append(a)
-    #         actual_scores = y_train[i : i + batch_size]
-    #         if torch.cuda.is_available():
-    #             actual_scores = torch.LongTensor(actual_scores).cuda()
-    #         else:
-    #             actual_scores = torch.LongTensor(actual_scores)
-    #         b_train_y.append(actual_scores)
-        
+        print('train_acc', train_acc)
 
-    #     np.random.shuffle(d)
-    #     X_valid,y_valid = zip(*d)
-    #     X_train = list(X_valid)
-    #     y_train = list(y_valid)
-    #     b_valid = [] 
-    #     b_valid_y = []
-    #     for i in tqdm(range(0,len(X_valid), batch_size)):   
-    #         a = X_valid[i : i + batch_size] # Batch Size x Sequence Length     
-    #         b_valid.append(a)
-    #         actual_scores = y_valid[i : i + batch_size]
-    #         if torch.cuda.is_available():
-    #             actual_scores = torch.LongTensor(actual_scores).cuda()
-    #         else:
-    #             actual_scores = torch.LongTensor(actual_scores)
-    #         b_valid_y.append(actual_scores)
-
-    #     np.random.shuffle(e)
-    #     X_test,y_test = zip(*e)
-    #     X_test = list(X_test)
-    #     y_test = list(y_test)
-    #     b_test = [] 
-    #     b_test_y = []
-    #     for i in tqdm(range(0,len(X_test), batch_size)):   
-    #         a = X_test[i : i + batch_size] # Batch Size x Sequence Length     
-    #         b_test.append(a)
-    #         actual_scores = y_test[i : i + batch_size]
-    #         if torch.cuda.is_available():
-    #             actual_scores = torch.LongTensor(actual_scores).cuda()
-    #         else:  
-    #             actual_scores = torch.LongTensor(actual_scores)
-    #         b_test_y.append(actual_scores)
-        
     #     train_loss, train_acc = train_run(model, b_train, b_train_y, optimizer, criterion)
     #     valid_loss, valid_acc, valid_f1 = eval_run(model, b_valid, b_valid_y, criterion)
     #     test_loss, test_acc, test_f1 = eval_run(model, b_test, b_test_y, criterion)
     #     print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}% |Val. F1: {valid_f1*100:.3f}%')
     #     print(f'| Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% | Test.F1: {test_f1*100:.3f}%')
-    
-
     # torch.save(model.state_dict(), PATH)
-
-# def train_run(model, X_train, y_train, optimizer, criterion):
-#     epoch_loss = 0
-#     epoch_acc = 0
-#     model.train()
-
-#     a = 0
-#     for batch_phrase, batch_label in tqdm(zip(X_train, y_train)):
-        
-        
-#         optimizer.zero_grad() 
-#         output = model(batch_phrase).squeeze(1)
-#         # print('!!!!!')
-#         # print(output.shape)
-#         # print('@@@@@@@@@@')
-#         # print(batch_label.shape)
-#         loss = criterion(output, batch_label)
-#         acc = binary_accuracy(output, batch_label)
-#         loss.backward() 
-#         optimizer.step()
-#         epoch_loss += loss.item()
-#         epoch_acc += acc
-    
-#     return epoch_loss / len(X_train), epoch_acc / len(X_train) 
-
-
-# def eval_run(model, X_test, y_test, criterion):
-#     epoch_loss = 0
-#     epoch_acc = 0
-#     epoch_f1 = 0
-#     model.eval()
-
-#     with torch.no_grad():
-#         for batch_phrase, batch_label in tqdm(zip(X_test, y_test)):
-#             predictions = model(batch_phrase).squeeze(1)
-#             loss = criterion(predictions, batch_label)
-#             acc = binary_accuracy(predictions, batch_label)
-#             f1 = f1_score(predictions, batch_label)
-#             epoch_loss += loss.item()
-#             epoch_acc += acc
-#             epoch_f1 += f1
-    
-#     return epoch_loss / len(X_test), epoch_acc / len(X_test), epoch_f1 / len(X_test)
-
-# def f1_score(preds, y):
-#     from sklearn.metrics import f1_score
-#     pred = F.softmax(preds, dim=1)
-#     pred = pred.max(1, keepdim=True)[1]
-#     return f1_score(y.data.cpu().numpy(), pred.data.cpu().numpy(), average='weighted')
-# def binary_accuracy(preds, y):
-#     """
-#     Returns accuracy per batch, i.e. if you get 8/10 right, this returns 0.8, NOT 8
-#     """
-
-#     #round predictions to the closest integer
-#     pred = F.softmax(preds)
-#     correct = 0
-#     pred = pred.max(1, keepdim=True)[1]
-#     correct += pred.eq(y.view_as(pred)).sum().item()
-#      #convert into float for division 
-#     acc = correct/len(y)
-
-#     return acc
 
 if __name__ == "__main__":
     main()
