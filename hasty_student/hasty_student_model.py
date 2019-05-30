@@ -115,4 +115,8 @@ class HierNet(nn.Module):
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             
-        return output_choice_list 
+        return output_choice_list
+
+
+
+
