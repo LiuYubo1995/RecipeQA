@@ -5,12 +5,12 @@ import torch.nn as nn
 import torch.optim as optim
 import torch
 from tqdm import tqdm
-# import pandas as pd
+import pandas as pd
 import numpy as np
 import re
 import json
 from data_processing import pre_process_data
-import argparse
+import argparse 
 
 def get_args():
     parser = argparse.ArgumentParser("Hasty_student_recipeQA")
@@ -19,10 +19,10 @@ def get_args():
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--word_hidden_size", type=int, default=256)
     parser.add_argument("--sent_hidden_size", type=int, default=256)
-    parser.add_argument("--log_path", type=str, default="tensorboard/han_voc")
+    parser.add_argument("--log_path", type=str, default="result/log_data.txt")
     parser.add_argument("--saved_path", type=str, default="trained_models")
     parser.add_argument("--load_model", type=str, default=None)
-    args = parser.parse_args()
+    args = parser.parse_args() 
     return args 
 
 def accuracy(preds, y):
@@ -84,11 +84,19 @@ def shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer):
     recipe_answer_shuffled = list(recipe_answer_shuffled)
     return recipe_context_shuffled,recipe_question_shuffled, recipe_choice_shuffled, recipe_answer_shuffled
 
-def save_model(model, epoch,accuracy,saved_path):
+def save_model(model, epoch,accuracy, saved_path):
     torch.save(model.state_dict(),
                '%s/hasty_student_epoch_%d_%f_acc.pth' % (saved_path, epoch,accuracy))
     print('Save model with accuracy:',accuracy)
 
+def log_data(log_path,train_loss,train_accuracy,val_loss,val_accuracy):
+    file = open(log_path,'a')
+    data = str(train_loss) +' '+ str(f'{train_accuracy:.2f}') \
+            +' '+ str(val_loss)+ ' ' + str(f'{val_accuracy:.2f}')
+    file.write(data)
+    file.write('\n')
+    file.close() 
+        
 
 
 
@@ -105,7 +113,7 @@ def main(args):
     recipe_context_valid, recipe_images_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid = pre_process_data('val_text_cloze.json')
 
     model = HierNet(word_hidden_size, sent_hidden_size)
-    if args.load_model:
+    if args.load_model: 
         model.load_state_dict(torch.load(args.load_model))
         model.eval()
         print("LOAD MODEL:",args.load_model)
@@ -140,7 +148,9 @@ def main(args):
 
         train_loss, train_acc = train_run(model, b_train, b_train_answer, optimizer, criterion, b_train_choice, batch_size,recipe_question_valid, recipe_answer_valid, recipe_choice_valid)
         valid_loss, valid_acc = eval_run(model, recipe_question_valid, recipe_answer_valid, criterion, recipe_choice_valid)
-        # print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}%')
+        log_data(args.log_path, train_loss, train_acc, valid_loss, valid_acc)
+
+        print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}%')
         if valid_acc > max_val_acc:
             max_val_acc = valid_acc
             save_model(model,epoch,valid_acc,args.saved_path)
