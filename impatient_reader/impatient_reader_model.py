@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 from allennlp.modules.elmo import Elmo, batch_to_ids
-
+from data_processing import transport_1_0_2
+import torch.nn.functional as F
 class WordLevel(nn.Module):
     
     def __init__(self, hidden_size=256):
@@ -62,62 +63,107 @@ class ChoiceNet(nn.Module):
         return output, hidden_output
 
 
-
-class Net(nn.Module):       
+class Text_Net(nn.Module):       
     def __init__(self, word_hidden_size, sent_hidden_size):
-        super(HierNet, self).__init__()
-        self.word_hidden_size = word_hidden_size
-        self.sent_hidden_size = sent_hidden_size
-        self.word_att_net = WordLevel(word_hidden_size)
-        self.sent_att_net = SentLevel(sent_hidden_size, word_hidden_size)
+        super(Text_Net, self).__init__()
+        self.step_net = WordLevel(word_hidden_size)
+        self.text_net = SentLevel(sent_hidden_size, word_hidden_size)
+
+    def forward(self, input_text):
+        input_text = transport_1_0_2(input_text) 
+        output_list = []
+        for i in input_text:       
+            output, self.word_hidden_state = self.step_net(i)
+            output_list.append(output) 
+        output = torch.cat(output_list, 0)
+        output, hidden_output = self.text_net(output)
+
+        return output, hidden_output
+
+
+class Question_Net(nn.Module):       
+    def __init__(self, word_hidden_size, sent_hidden_size):
+        super(Question_Net, self).__init__()
+        self.word_net = WordLevel(word_hidden_size)
+        self.sen_net = SentLevel(sent_hidden_size, word_hidden_size)
+
+    def forward(self, input_question):
+        input_question = transport_1_0_2(input_question) 
+        output_list = []
+        for i in input_question:       
+            output, self.word_hidden_state = self.word_net(i)
+            output_list.append(output) 
+        output = torch.cat(output_list, 0)
+        output, hidden_output = self.sen_net(output)
+
+        return output, hidden_output
+
+
+
+
+class Attention(nn.Module):
+    def __init__(self, word_hidden_size, sent_hidden_size):
+        super(Attention, self).__init__() 
+        self.text = Text_Net(word_hidden_size, sent_hidden_size)
+        self.question = Question_Net(word_hidden_size, sent_hidden_size)
+        self.dim = word_hidden_size*2
+        self.linear_dm = nn.Linear(self.dim,self.dim)
+        self.linear_rm = nn.Linear(self.dim,self.dim)
+        self.linear_qm = nn.Linear(self.dim,self.dim)
+        self.linear_ms = nn.Linear(self.dim, 1) 
+        self.linear_rr = nn.Linear(self.dim,self.dim)
+        self.linear_rg = nn.Linear(self.dim,self.dim)
+        self.linear_qg = nn.Linear(self.dim,self.dim)
+    def forward(self, input_context, input_question): 
+        context_ouput, _ = self.text(input_context)
+        question_output, u = self.question(input_question)
+        r = torch.zeros(batch_size, 1, self.dim)
+        for i in question_output:
+            ouput1 = self.linear_dm(context_ouput.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
+            output2 = self.linear_rm(r) # (batch, 1, dim)
+            output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
+            m = F.tanh(output1 + output2 + output3)
+            s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
+            output4 = F.tanh(self.linear_rr(r))
+            r = torch.matmul(s, context_ouput) + output4
+        g = self.linear_rg(r) + self.linear_qg(u.permute(1,0,2)) # g (batch, 1, 512)
+
+        return g 
+
+
+class Impatient_Reader_Model(nn.Module):       
+    def __init__(self, word_hidden_size, sent_hidden_size):
+        super(Impatient_Reader_Model, self).__init__()
+        self.step_net = WordLevel(word_hidden_size)
+        self.text_net = SentLevel(sent_hidden_size, word_hidden_size)
+        self.attention = Attention(word_hidden_size, sent_hidden_size)
         self.choice = ChoiceNet(word_hidden_size)
+        
         self.fc1 = nn.Linear(512, 50, bias=True)
         self.fc2 = nn.Linear(512, 50, bias = True)
-        self.linear_dm = nn.Linear()
-        self.linear_rm = nn.Linear()
-        self.linear_qm = 
-
-
-    def transport_1_0_2(self, a):
-        max_step = 0
-        for i in a:
-            if max_step < len(i):
-                max_step = len(i)
-        new = []
-        for i in range(max_step):
-            step = []
-            for j in a:
-                if len(j) <= i:
-                    step.append([])
-                else:
-                    step.append(j[i])      
-            new.append(step)
-        return new
 
     def exponent_neg_manhattan_distance(self, x1, x2):
         return torch.exp(-torch.sum(torch.abs(x1 - x2), dim=1))
     def cosine_neg_distance(self, x1, x2):
         return torch.mm(x1, x2.transpose(0, 1))/(torch.norm(x1, dim=1)*torch.norm(x2,dim=1))
 
-    def forward(self, input, input_choice):
-        input = self.transport_1_0_2(input) 
-        input_choice = self.transport_1_0_2(input_choice)
+    def forward(self, input_context,  input_question, input_choice):
+        input_context = transport_1_0_2(input_context)
+        input_question = transport_1_0_2(input_question)
+        input_choice = transport_1_0_2(input_choice)
         output_list = []
-        for i in input:       
-            output, self.word_hidden_state = self.word_att_net(i)
-            output_list.append(output) 
-        output = torch.cat(output_list, 0)
-        output, hidden_output_question = self.sent_att_net(output)
-        #hidden_output_question = self.fc1(hidden_output_question)
+        g = self.attention(input_context, input_question)
+
         output_choice_list = []
         for i in input_choice:  
             output_choice, hidden_output_choice = self.choice(i)
             #hidden_output_choice = self.fc2(hidden_output_choice)
-            similarity_scores = torch.sum(torch.mul(hidden_output_question, hidden_output_choice), dim=1)
+            similarity_scores = torch.sum(torch.mul(g.permute(1,0,2), hidden_output_choice), dim=1)
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             
         return output_choice_list
+
 
 
 
