@@ -214,3 +214,18 @@ def pre_process_data(file_name):
         recipe_choice.append(new_choice)
         recipe_answer.append(recipe['answer'])
     return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
+def transport_1_0_2(a):
+        max_step = 0
+        for i in a:
+            if max_step < len(i):
+                max_step = len(i)
+        new = []
+        for i in range(max_step):
+            step = []
+            for j in a:
+                if len(j) <= i:
+                    step.append([])
+                else:
+                    step.append(j[i])      
+            new.append(step)
+        return new

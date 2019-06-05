@@ -71,7 +71,7 @@ class Text_Net(nn.Module):
 
     def forward(self, input_text): 
         output_list = []
-        for i in input_text:       
+        for i in input_text:  
             output, step_hidden_state = self.step_net(i)
             if torch.cuda.is_available():
                 output_list.append(step_hidden_state.cpu().detach().numpy())
@@ -81,7 +81,7 @@ class Text_Net(nn.Module):
             output_step = torch.FloatTensor(output_list).cuda()
         else:
             output_step = torch.FloatTensor(output_list)
-            
+
         output, hidden_output = self.text_net(output_step)
 
         return output, hidden_output 

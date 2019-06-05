@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from allennlp.modules.elmo import Elmo, batch_to_ids
+from data_processing import transport_1_0_2
 
 class WordLevel(nn.Module):
     
@@ -75,31 +76,20 @@ class HierNet(nn.Module):
         self.choice = ChoiceNet(word_hidden_size)
         self.fc1 = nn.Linear(512, 50, bias=True)
         self.fc2 = nn.Linear(512, 50, bias = True)
-
-    def transport_1_0_2(self, a):
-        max_step = 0
-        for i in a:
-            if max_step < len(i):
-                max_step = len(i)
-        new = []
-        for i in range(max_step):
-            step = []
-            for j in a:
-                if len(j) <= i:
-                    step.append([])
-                else:
-                    step.append(j[i])      
-            new.append(step)
-        return new
+        self.fc3 = nn.Linear(word_hidden_size*8, 512)
+        self.dropout = nn.Dropout(p = 0.2)
+        self.fc4 = nn.Linear(512, 1)
 
     def exponent_neg_manhattan_distance(self, x1, x2):
-        return torch.exp(-torch.sum(torch.abs(x1 - x2), dim=1))
-    def cosine_neg_distance(self, x1, x2):
-        return torch.mm(x1, x2.transpose(0, 1))/(torch.norm(x1, dim=1)*torch.norm(x2,dim=1))
-
+        return torch.sum(torch.abs(x1 - x2), dim=1)
+    def cosine_dot_distance(self, x1, x2):
+        return torch.sum(torch.mul(x1, x2), dim=1)
+    def Infersent(self, x1, x2):
+        return torch.cat((x1, x2, torch.abs(x1 - x2), x1 * x2), 1)
+        
     def forward(self, input_question, input_choice):
-        input_question = self.transport_1_0_2(input_question) 
-        input_choice = self.transport_1_0_2(input_choice)
+        input_question = transport_1_0_2(input_question) 
+        input_choice = transport_1_0_2(input_choice)
         output_list = []
         for i in input_question:       
             output, word_hidden_state = self.word_att_net(i)
@@ -117,7 +107,12 @@ class HierNet(nn.Module):
         for i in input_choice:  
             output_choice, hidden_output_choice = self.choice(i)
             #hidden_output_choice = self.fc2(hidden_output_choice)
-            similarity_scores = torch.sum(torch.mul(hidden_output_question, hidden_output_choice), dim=1)
+    
+            similarity_scores = self.Infersent(hidden_output_question, hidden_output_choice)
+            similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
+            similarity_scores = self.fc4(similarity_scores)
+    
+            #similarity_scores = self.cosine_dot_distance(hidden_output_question, hidden_output_choice)
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             
