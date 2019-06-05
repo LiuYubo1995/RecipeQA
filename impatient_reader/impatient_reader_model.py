@@ -118,9 +118,13 @@ class Attention(nn.Module):
     def forward(self, input_context, input_question): 
         context_ouput, _ = self.text(input_context)
         question_output, u = self.question(input_question)
-        r = torch.zeros(self.batch_size, 1, self.dim)
+        if torch.cuda.is_available():
+            r = torch.zeros(self.batch_size, 1, self.dim).cuda() 
+        else:
+            r = torch.zeros(self.batch_size, 1, self.dim)
+
         for i in question_output:
-            ouput1 = self.linear_dm(context_ouput.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
+            output1 = self.linear_dm(context_ouput.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
             output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
             m = F.tanh(output1 + output2 + output3)
