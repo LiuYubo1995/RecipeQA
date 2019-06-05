@@ -140,13 +140,10 @@ class Attention(nn.Module):
         for i in question_output: 
             output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
-
-            output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim
-            m = F.tanh(output1 + output2 + output3) 
+            output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
+            m = torch.tanh(output1 + output2 + output3) 
             s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
-            output4 = F.tanh(self.linear_rr(r))
-            output5 = torch.matmul(s, context_output.permute(1, 0, 2))
-            r = output5 + output4
+            r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_rr(r))
         # print('r', r.size())
         # print('u', u.size())6
         g = self.linear_rg(r).squeeze(1) + self.linear_qg(u) # g (batch, 1, 512)

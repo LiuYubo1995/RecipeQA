@@ -33,43 +33,43 @@ def accuracy(preds, y):
     acc = correct/len(y)
 
     return acc
-def train_run(model, X_train, y_train, optimizer, criterion, X_choice, batch_size,recipe_question_valid, recipe_answer_valid,recipe_choice_valid):
+def train_run(model, train_question, train_answer, train_choice, optimizer, criterion, batch_size):
     epoch_loss = 0
     epoch_acc = 0
     model.train()
     a = 0
     # max_acc = 0.0
-    for batch_phrase, batch_label, batch_choice in tqdm(zip(X_train, y_train, X_choice)):          
+    for batch_question, batch_answer, batch_choice in tqdm(zip(train_question, train_answer, train_choice)):          
         optimizer.zero_grad() 
-        output = model(batch_phrase, batch_choice)
-        output = torch.cat(output, 0).view(-1, len(batch_phrase))
+        output = model(batch_question, batch_choice)
+        output = torch.cat(output, 0).view(-1, len(batch_question))
         output = output.permute(1, 0)
-        loss = criterion(output, batch_label)
-        acc = accuracy(output, batch_label)
+        loss = criterion(output, batch_answer)
+        acc = accuracy(output, batch_answer)
         loss.backward() 
         optimizer.step()
         epoch_loss += loss.item() 
         epoch_acc += acc
 
-    return epoch_loss / len(X_train), epoch_acc / len(X_train) 
+    return epoch_loss / len(train_question), epoch_acc / len(train_question) 
 
 
-def eval_run(model, X_val, y_val, criterion, X_choice):
+def eval_run(model, val_question, val_answer, val_choice, criterion):
     if torch.cuda.is_available():
-        y_val = torch.LongTensor(y_val).cuda()
+        val_answer = torch.LongTensor(val_answer).cuda()
     else:
-        y_val = torch.LongTensor(y_val)
+        val_answer = torch.LongTensor(val_answer)
     epoch_loss = 0
     epoch_acc = 0
     model.eval() 
-    batch_size = len(X_val) 
+    batch_size = len(val_question) 
 
     with torch.no_grad():
-        predictions = model(X_val, X_choice)
-        predictions = torch.cat(predictions, 0).view(-1, len(X_val))
+        predictions = model(val_question, val_choice)
+        predictions = torch.cat(predictions, 0).view(-1, len(val_question))
         predictions = predictions.permute(1, 0)
-        loss = criterion(predictions, y_val)
-        acc = accuracy(predictions, y_val)
+        loss = criterion(predictions, val_answer)
+        acc = accuracy(predictions, val_answer)
     return loss, acc
 
 
@@ -135,23 +135,21 @@ def main(args):
         print(epoch)
 
         recipe_context_new,recipe_question_new,recipe_choice_new,recipe_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
-        b_train = []
-        b_train_answer = []
-        b_train_choice = []
+        train_question = []
+        train_answer = []
+        train_choice = []
         for i in tqdm(range(0, len(recipe_question_new), batch_size)):
-            a = recipe_question_new[i : i + batch_size]
-            b_train.append(a)  
-            c = recipe_choice_new[i : i + batch_size]
-            b_train_choice.append(c)
+            train_question.append(recipe_question_new[i : i + batch_size])  
+            train_choice.append(recipe_choice_new[i : i + batch_size])
             actual_scores = recipe_answer_new[i : i + batch_size]
             if torch.cuda.is_available():
                 actual_scores = torch.LongTensor(actual_scores).cuda()
-            else:
+            else: 
                 actual_scores = torch.LongTensor(actual_scores)
-            b_train_answer.append(actual_scores) 
+            train_answer.append(actual_scores) 
 
-        train_loss, train_acc = train_run(model, b_train, b_train_answer, optimizer, criterion, b_train_choice, batch_size,recipe_question_valid, recipe_answer_valid, recipe_choice_valid)
-        valid_loss, valid_acc = eval_run(model, recipe_question_valid, recipe_answer_valid, criterion, recipe_choice_valid)
+        train_loss, train_acc = train_run(model, train_question, train_answer, train_choice, optimizer, criterion, batch_size)
+        valid_loss, valid_acc = eval_run(model, recipe_question_valid, recipe_answer_valid, recipe_choice_valid, criterion)
         log_data(args.log_path, train_loss, train_acc, valid_loss, valid_acc)
 
         print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}%')
