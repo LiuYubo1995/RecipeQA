@@ -6,12 +6,12 @@ from data_processing import transport_1_0_2
 import torch.nn.functional as F
 class WordLevel(nn.Module):
     
-    def __init__(self, hidden_size=256):
+    def __init__(self, word_hidden_size):
         super(WordLevel, self).__init__()
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
         self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
-        self.lstm = nn.LSTM(1024, 256, num_layers=1, 
+        self.lstm = nn.LSTM(1024, word_hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
     def forward(self, input):
@@ -41,12 +41,12 @@ class SentLevel(nn.Module):
 
 class ChoiceNet(nn.Module):
     
-    def __init__(self, hidden_size=256):
+    def __init__(self, word_hidden_size):
         super(ChoiceNet, self).__init__()
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
         self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
-        self.lstm = nn.LSTM(1024, 256, num_layers=1, 
+        self.lstm = nn.LSTM(1024, word_hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
     def forward(self, input):
@@ -126,8 +126,8 @@ class Attention(nn.Module):
         for i in question_output:
             output1 = self.linear_dm(context_ouput.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
-            output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
-            m = F.tanh(output1 + output2 + output3)
+            output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim
+            m = F.tanh(output1 + output2 + output3) 
             s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
             output4 = F.tanh(self.linear_rr(r))
             r = torch.matmul(s, context_ouput) + output4
@@ -143,9 +143,7 @@ class Impatient_Reader_Model(nn.Module):
         self.text_net = SentLevel(sent_hidden_size, word_hidden_size)
         self.attention = Attention(word_hidden_size, sent_hidden_size, batch_size)
         self.choice = ChoiceNet(word_hidden_size)
-        
-        self.fc1 = nn.Linear(512, 50, bias=True)
-        self.fc2 = nn.Linear(512, 50, bias = True)
+    
 
     def exponent_neg_manhattan_distance(self, x1, x2):
         return torch.exp(-torch.sum(torch.abs(x1 - x2), dim=1))
