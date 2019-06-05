@@ -171,7 +171,7 @@ class Impatient_Reader_Model(nn.Module):
     def forward(self, input_context,  input_question, input_choice):
         input_context = transport_1_0_2(input_context)
         input_question = transport_1_0_2(input_question)
-        input_choice = transport_1_0_2(input_choice)
+        input_choice = transport_1_0_2(input_choice) 
         output_list = []
         g = self.attention(input_context, input_question)
 

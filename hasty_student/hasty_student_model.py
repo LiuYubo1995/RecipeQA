@@ -25,7 +25,7 @@ class WordLevel(nn.Module):
         output, (hidden,_) = self.lstm(embedded)
         hidden_output = torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim=1)
 
-        return output, hidden_output
+        return output, hidden_output 
 
 
 class SentLevel(nn.Module):
@@ -71,8 +71,8 @@ class HierNet(nn.Module):
         super(HierNet, self).__init__()
         self.word_hidden_size = word_hidden_size
         self.sent_hidden_size = sent_hidden_size
-        self.word_att_net = WordLevel(word_hidden_size)
-        self.sent_att_net = SentLevel(sent_hidden_size, word_hidden_size)
+        self.word_net = WordLevel(word_hidden_size)
+        self.sent_net = SentLevel(sent_hidden_size, word_hidden_size)
         self.choice = ChoiceNet(word_hidden_size)
         self.fc1 = nn.Linear(512, 50, bias=True)
         self.fc2 = nn.Linear(512, 50, bias = True)
@@ -92,7 +92,7 @@ class HierNet(nn.Module):
         input_choice = transport_1_0_2(input_choice)
         output_list = []
         for i in input_question:       
-            output, word_hidden_state = self.word_att_net(i)
+            output, word_hidden_state = self.word_net(i)
             if torch.cuda.is_available():
                 output_list.append(word_hidden_state.cpu().detach().numpy())
             else:
@@ -101,7 +101,7 @@ class HierNet(nn.Module):
             output_word = torch.FloatTensor(output_list).cuda()
         else:
             output_word = torch.FloatTensor(output_list)
-        output, hidden_output_question = self.sent_att_net(output_word)
+        output, hidden_output_question = self.sent_net(output_word)
         #hidden_output_question = self.fc1(hidden_output_question)
         output_choice_list = []
         for i in input_choice:  

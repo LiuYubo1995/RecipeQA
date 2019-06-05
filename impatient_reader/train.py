@@ -153,6 +153,7 @@ def main(args):
             train_answer.append(actual_scores) 
 
         train_loss, train_acc = train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size)
+        print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}%')
         valid_loss, valid_acc = eval_run(model, recipe_context_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid, criterion)
         log_data(args.log_path, train_loss, train_acc, valid_loss, valid_acc)
 
