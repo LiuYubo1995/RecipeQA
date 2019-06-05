@@ -116,7 +116,7 @@ def main(args):
     recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = pre_process_data('train_text_cloze.json')
     recipe_context_valid, recipe_images_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid = pre_process_data('val_text_cloze.json')
 
-    model = Impatient_Reader_Model(word_hidden_size, sent_hidden_size)
+    model = Impatient_Reader_Model(word_hidden_size, sent_hidden_size, batch_size)
     if args.load_model: 
         model.load_state_dict(torch.load(args.load_model))
         model.eval()

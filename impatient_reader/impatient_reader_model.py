@@ -102,11 +102,12 @@ class Question_Net(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, word_hidden_size, sent_hidden_size):
+    def __init__(self, word_hidden_size, sent_hidden_size, batch_size):
         super(Attention, self).__init__() 
         self.text = Text_Net(word_hidden_size, sent_hidden_size)
         self.question = Question_Net(word_hidden_size, sent_hidden_size)
         self.dim = word_hidden_size*2
+        self.batch_size = batch_size
         self.linear_dm = nn.Linear(self.dim,self.dim)
         self.linear_rm = nn.Linear(self.dim,self.dim)
         self.linear_qm = nn.Linear(self.dim,self.dim)
@@ -117,7 +118,7 @@ class Attention(nn.Module):
     def forward(self, input_context, input_question): 
         context_ouput, _ = self.text(input_context)
         question_output, u = self.question(input_question)
-        r = torch.zeros(batch_size, 1, self.dim)
+        r = torch.zeros(self.batch_size, 1, self.dim)
         for i in question_output:
             ouput1 = self.linear_dm(context_ouput.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
@@ -132,11 +133,11 @@ class Attention(nn.Module):
 
 
 class Impatient_Reader_Model(nn.Module):       
-    def __init__(self, word_hidden_size, sent_hidden_size):
+    def __init__(self, word_hidden_size, sent_hidden_size, batch_size):
         super(Impatient_Reader_Model, self).__init__()
         self.step_net = WordLevel(word_hidden_size)
         self.text_net = SentLevel(sent_hidden_size, word_hidden_size)
-        self.attention = Attention(word_hidden_size, sent_hidden_size)
+        self.attention = Attention(word_hidden_size, sent_hidden_size, batch_size)
         self.choice = ChoiceNet(word_hidden_size)
         
         self.fc1 = nn.Linear(512, 50, bias=True)
