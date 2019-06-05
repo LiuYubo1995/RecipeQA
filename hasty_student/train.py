@@ -44,6 +44,8 @@ def train_run(model, X_train, y_train, optimizer, criterion, X_choice, batch_siz
         output = model(batch_phrase, batch_choice)
         output = torch.cat(output, 0).view(-1, len(batch_phrase))
         output = output.permute(1, 0)
+        print(output)
+        print(batch_label)
         loss = criterion(output, batch_label)
         acc = accuracy(output, batch_label)
         loss.backward() 

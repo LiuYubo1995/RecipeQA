@@ -103,7 +103,7 @@ class HierNet(nn.Module):
         output_list = []
         for i in input_question:       
             output, word_hidden_state = self.word_att_net(i)
-            output_list.append(step_hidden_state.detach().numpy()) 
+            output_list.append(word_hidden_state.detach().numpy()) 
         output_word = torch.FloatTensor(output_list)
         output, hidden_output_question = self.sent_att_net(output_word)
         #hidden_output_question = self.fc1(hidden_output_question)

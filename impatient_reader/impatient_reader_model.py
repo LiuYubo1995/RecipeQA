@@ -132,13 +132,11 @@ class Attention(nn.Module):
             m = F.tanh(output1 + output2 + output3) 
             s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
             output4 = F.tanh(self.linear_rr(r))
-            print('s', s.size())
-            print('context_output', context_output.size())
-            print(output4.size())
             output5 = torch.matmul(s, context_output.permute(1, 0, 2))
-            print(output5.size())
             r = output5 + output4
-        g = self.linear_rg(r) + self.linear_qg(u.permute(1,0,2)) # g (batch, 1, 512)
+        # print('r', r.size())
+        # print('u', u.size())
+        g = self.linear_rg(r).squeeze(1) + self.linear_qg(u) # g (batch, 1, 512)
 
         return g 
 
@@ -168,7 +166,7 @@ class Impatient_Reader_Model(nn.Module):
         for i in input_choice:  
             output_choice, hidden_output_choice = self.choice(i)
             #hidden_output_choice = self.fc2(hidden_output_choice)
-            similarity_scores = torch.sum(torch.mul(g.permute(1,0,2), hidden_output_choice), dim=1)
+            similarity_scores = torch.sum(torch.mul(g, hidden_output_choice), dim=1)
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             

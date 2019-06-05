@@ -150,7 +150,7 @@ def main(args):
                 actual_scores = torch.LongTensor(actual_scores).cuda()
             else:
                 actual_scores = torch.LongTensor(actual_scores)
-            train_answer.append(recipe_answer_new[i : i + batch_size]) 
+            train_answer.append(actual_scores) 
 
         train_loss, train_acc = train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size)
         valid_loss, valid_acc = eval_run(model, recipe_context_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid, criterion)
