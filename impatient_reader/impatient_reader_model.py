@@ -116,6 +116,7 @@ class Attention(nn.Module):
         self.linear_rg = nn.Linear(self.dim,self.dim)
         self.linear_qg = nn.Linear(self.dim,self.dim)
     def forward(self, input_context, input_question): 
+        print(input_context)
         context_output, _ = self.text(input_context)
         
         question_output, u = self.question(input_question)
@@ -128,6 +129,7 @@ class Attention(nn.Module):
         for i in question_output: 
             output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
+
             output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim
             m = F.tanh(output1 + output2 + output3) 
             s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)

@@ -103,8 +103,14 @@ class HierNet(nn.Module):
         output_list = []
         for i in input_question:       
             output, word_hidden_state = self.word_att_net(i)
-            output_list.append(word_hidden_state.detach().numpy()) 
-        output_word = torch.FloatTensor(output_list)
+            if torch.cuda.is_available():
+                output_list.append(word_hidden_state.cpu().detach().numpy())
+            else:
+                output_list.append(word_hidden_state.detach().numpy())
+        if torch.cuda.is_available():
+            output_word = torch.FloatTensor(output_list).cuda()
+        else:
+            output_word = torch.FloatTensor(output_list)
         output, hidden_output_question = self.sent_att_net(output_word)
         #hidden_output_question = self.fc1(hidden_output_question)
         output_choice_list = []
