@@ -96,7 +96,7 @@ class Question_Net(nn.Module):
     def forward(self, input_question):
         output_list = []
         for i in input_question:       
-            output, word_hidden_state = self.word_att_net(i)
+            output, word_hidden_state = self.word_net(i)
             if torch.cuda.is_available():
                 output_list.append(word_hidden_state.cpu().detach().numpy())
             else:
