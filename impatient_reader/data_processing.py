@@ -1,3 +1,5 @@
+# import pandas as pd
+import numpy as np
 import json
 import re
 
@@ -20,8 +22,8 @@ def extract_dataset(path, store_path, task):
 extract_dataset('train.json', 'train_text_cloze.json', 'textual_cloze')
 extract_dataset('val.json', 'val_text_cloze.json', 'textual_cloze')
 
-text_cloze_train = json.loads(open('text_cloze.json', 'r', encoding='utf8').read())
-print(len(text_cloze_train['data']))
+text_cloze_train = json.loads(open('train_text_cloze.json', 'r', encoding='utf8').read())
+#print(len(text_cloze_train['data']))
 
 
 
@@ -37,12 +39,6 @@ def clean_text(text):
         text = text.replace(punct, '')
     return text
 
-def clean_numbers(text):
-    text = re.sub('[0-9]{5,}', '#####', text)
-    text = re.sub('[0-9]{4}', '####', text)
-    text = re.sub('[0-9]{3}', '###', text)
-    text = re.sub('[0-9]{2}', '##', text)
-    return text
 
 mispell_dict = {"aren't" : "are not", 
 "can't" : "cannot",
@@ -188,32 +184,33 @@ def process(string):
     string = string.split()
     return string
 
+def pre_process_data(file_name):
+    train_file = open(file_name, 'r', encoding='utf8').read()
+    train_dict = json.loads(train_file)
+    train_data = train_dict['data'] 
 
-train_file = open('train_text_cloze.json', 'r', encoding='utf8').read()
-train_dict = json.loads(train_file)
-train_data = train_dict['data'] 
 
-
-recipe_context = []
-recipe_answer = []
-recipe_choice = []
-recipe_question = [] 
-recipe_images = []
-for recipe in train_data: 
-    new_recipe = [] 
-    new_question = []
-    new_choice = []
-    new_images = []
-    for step in recipe['context']:
-        step_recipe = process(step['body'])
-        new_images.append(step['images'])   
-        new_recipe.append(step_recipe)
-    recipe_context.append(new_recipe)
-    recipe_images.append(new_images)
-    for step in recipe['question']:
-        new_question.append(process(step))
-    recipe_question.append(new_question)
-    for step in recipe['choice_list']: 
-        new_choice.append(process(step))
-    recipe_choice.append(new_choice)
-    recipe_answer.append(recipe['answer'])   
+    recipe_context = []
+    recipe_answer = []
+    recipe_choice = []
+    recipe_question = [] 
+    recipe_images = []
+    for recipe in train_data: 
+        new_recipe = [] 
+        new_question = []
+        new_choice = []
+        new_images = []
+        for step in recipe['context']:
+            step_recipe = process(step['body'])
+            new_images.append(step['images'])   
+            new_recipe.append(step_recipe)
+        recipe_context.append(new_recipe)
+        recipe_images.append(new_images)
+        for step in recipe['question']:
+            new_question.append(process(step))
+        recipe_question.append(new_question)
+        for step in recipe['choice_list']: 
+            new_choice.append(process(step))
+        recipe_choice.append(new_choice)
+        recipe_answer.append(recipe['answer'])
+    return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
