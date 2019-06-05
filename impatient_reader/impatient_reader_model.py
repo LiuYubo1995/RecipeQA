@@ -69,16 +69,16 @@ class Text_Net(nn.Module):
         self.step_net = WordLevel(word_hidden_size)
         self.text_net = SentLevel(sent_hidden_size, word_hidden_size)
 
-    def forward(self, input_text):
-        input_text = transport_1_0_2(input_text) 
+    def forward(self, input_text): 
         output_list = []
         for i in input_text:       
-            output, self.word_hidden_state = self.step_net(i)
-            output_list.append(output) 
-        output = torch.cat(output_list, 0)
-        output, hidden_output = self.text_net(output)
+            output, step_hidden_state = self.step_net(i)
+            output_list.append(step_hidden_state.detach().numpy()) 
+        
+        output_step = torch.FloatTensor(output_list)
+        output, hidden_output = self.text_net(output_step)
 
-        return output, hidden_output
+        return output, hidden_output 
 
 
 class Question_Net(nn.Module):       
@@ -88,13 +88,13 @@ class Question_Net(nn.Module):
         self.sen_net = SentLevel(sent_hidden_size, word_hidden_size)
 
     def forward(self, input_question):
-        input_question = transport_1_0_2(input_question) 
         output_list = []
         for i in input_question:       
-            output, self.word_hidden_state = self.word_net(i)
-            output_list.append(output) 
-        output = torch.cat(output_list, 0)
-        output, hidden_output = self.sen_net(output)
+            output, word_hidden_state = self.word_net(i) 
+            output_list.append(word_hidden_state.detach().numpy())
+            
+        output_word = torch.FloatTensor(output_list)
+        output, hidden_output = self.sen_net(output_word)
 
         return output, hidden_output
 
@@ -116,21 +116,28 @@ class Attention(nn.Module):
         self.linear_rg = nn.Linear(self.dim,self.dim)
         self.linear_qg = nn.Linear(self.dim,self.dim)
     def forward(self, input_context, input_question): 
-        context_ouput, _ = self.text(input_context)
+        context_output, _ = self.text(input_context)
+        
         question_output, u = self.question(input_question)
+        
         if torch.cuda.is_available():
             r = torch.zeros(self.batch_size, 1, self.dim).cuda() 
         else:
             r = torch.zeros(self.batch_size, 1, self.dim)
 
-        for i in question_output:
-            output1 = self.linear_dm(context_ouput.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
+        for i in question_output: 
+            output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
             output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim
             m = F.tanh(output1 + output2 + output3) 
             s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
             output4 = F.tanh(self.linear_rr(r))
-            r = torch.matmul(s, context_ouput) + output4
+            print('s', s.size())
+            print('context_output', context_output.size())
+            print(output4.size())
+            output5 = torch.matmul(s, context_output.permute(1, 0, 2))
+            print(output5.size())
+            r = output5 + output4
         g = self.linear_rg(r) + self.linear_qg(u.permute(1,0,2)) # g (batch, 1, 512)
 
         return g 

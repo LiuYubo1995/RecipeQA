@@ -10,7 +10,7 @@ class WordLevel(nn.Module):
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
         self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
-        self.lstm = nn.LSTM(1024, 256, num_layers=1, 
+        self.lstm = nn.LSTM(1024, hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
     def forward(self, input):
@@ -45,7 +45,7 @@ class ChoiceNet(nn.Module):
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
         self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
-        self.lstm = nn.LSTM(1024, 256, num_layers=1, 
+        self.lstm = nn.LSTM(1024, hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
     def forward(self, input):
@@ -97,15 +97,15 @@ class HierNet(nn.Module):
     def cosine_neg_distance(self, x1, x2):
         return torch.mm(x1, x2.transpose(0, 1))/(torch.norm(x1, dim=1)*torch.norm(x2,dim=1))
 
-    def forward(self, input, input_choice):
-        input = self.transport_1_0_2(input) 
+    def forward(self, input_question, input_choice):
+        input_question = self.transport_1_0_2(input_question) 
         input_choice = self.transport_1_0_2(input_choice)
         output_list = []
-        for i in input:       
-            output, self.word_hidden_state = self.word_att_net(i)
-            output_list.append(output) 
-        output = torch.cat(output_list, 0)
-        output, hidden_output_question = self.sent_att_net(output)
+        for i in input_question:       
+            output, word_hidden_state = self.word_att_net(i)
+            output_list.append(step_hidden_state.detach().numpy()) 
+        output_word = torch.FloatTensor(output_list)
+        output, hidden_output_question = self.sent_att_net(output_word)
         #hidden_output_question = self.fc1(hidden_output_question)
         output_choice_list = []
         for i in input_choice:  
@@ -116,6 +116,7 @@ class HierNet(nn.Module):
             output_choice_list.append(similarity_scores)
             
         return output_choice_list
+
 
 
 
