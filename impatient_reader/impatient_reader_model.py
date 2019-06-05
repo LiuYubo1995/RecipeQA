@@ -73,9 +73,15 @@ class Text_Net(nn.Module):
         output_list = []
         for i in input_text:       
             output, step_hidden_state = self.step_net(i)
-            output_list.append(step_hidden_state.detach().numpy()) 
-        
-        output_step = torch.FloatTensor(output_list)
+            if torch.cuda.is_available():
+                output_list.append(step_hidden_state.cpu().detach().numpy())
+            else:
+                output_list.append(step_hidden_state.detach().numpy())
+        if torch.cuda.is_available():
+            output_step = torch.FloatTensor(output_list).cuda()
+        else:
+            output_step = torch.FloatTensor(output_list)
+            
         output, hidden_output = self.text_net(output_step)
 
         return output, hidden_output 
@@ -90,10 +96,16 @@ class Question_Net(nn.Module):
     def forward(self, input_question):
         output_list = []
         for i in input_question:       
-            output, word_hidden_state = self.word_net(i) 
-            output_list.append(word_hidden_state.detach().numpy())
-            
-        output_word = torch.FloatTensor(output_list)
+            output, word_hidden_state = self.word_att_net(i)
+            if torch.cuda.is_available():
+                output_list.append(word_hidden_state.cpu().detach().numpy())
+            else:
+                output_list.append(word_hidden_state.detach().numpy())
+        if torch.cuda.is_available():
+            output_word = torch.FloatTensor(output_list).cuda()
+        else:
+            output_word = torch.FloatTensor(output_list)
+
         output, hidden_output = self.sen_net(output_word)
 
         return output, hidden_output
@@ -116,7 +128,6 @@ class Attention(nn.Module):
         self.linear_rg = nn.Linear(self.dim,self.dim)
         self.linear_qg = nn.Linear(self.dim,self.dim)
     def forward(self, input_context, input_question): 
-        print(input_context)
         context_output, _ = self.text(input_context)
         
         question_output, u = self.question(input_question)
@@ -137,7 +148,7 @@ class Attention(nn.Module):
             output5 = torch.matmul(s, context_output.permute(1, 0, 2))
             r = output5 + output4
         # print('r', r.size())
-        # print('u', u.size())
+        # print('u', u.size())6
         g = self.linear_rg(r).squeeze(1) + self.linear_qg(u) # g (batch, 1, 512)
 
         return g 
