@@ -109,10 +109,10 @@ def log_data(log_path,train_loss,train_accuracy,val_loss,val_accuracy):
     file = open(log_path,'a')
     if torch.cuda.is_available():
         data = str(train_loss) +' '+ str(f'{train_accuracy:.2f}') \
-            +' '+ str(val_loss.cpu().numpy())+ ' ' + str(f'{val_accuracy:.2f}')
+            +' '+ str(val_loss)+ ' ' + str(f'{val_accuracy:.2f}')    #####如果不是batch， 这要改
     else:
         data = str(train_loss) + ' '+ str(f'{train_accuracy:.2f}') \
-                +' '+str(val_loss.numpy())+' '+str(f'{val_accuracy:.2f}')
+                +' '+str(val_loss)+' '+str(f'{val_accuracy:.2f}')
     file.write(data)
     file.write('\n')
     file.close() 
