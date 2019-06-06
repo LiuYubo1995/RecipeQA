@@ -133,9 +133,9 @@ class Attention(nn.Module):
         question_output, u = self.question(input_question)
         
         if torch.cuda.is_available():
-            r = torch.zeros(self.batch_size, 1, self.dim).cuda() 
+            r = torch.zeros(len(input_context), 1, self.dim).cuda() 
         else:
-            r = torch.zeros(self.batch_size, 1, self.dim)
+            r = torch.zeros(len(input_context), 1, self.dim)
 
         for i in question_output: 
             output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
