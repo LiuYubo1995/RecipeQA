@@ -224,7 +224,7 @@ def transport_1_0_2(a):
             step = []
             for j in a:
                 if len(j) <= i:
-                    step.append([])
+                    step.append(['0','0'])
                 else:
                     step.append(j[i])      
             new.append(step)
