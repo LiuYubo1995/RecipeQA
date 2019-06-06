@@ -135,10 +135,10 @@ def main(args):
         print(epoch)
 
         recipe_context_new,recipe_question_new,recipe_choice_new,recipe_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
-        recipe_context_new = recipe_context_new[0:15]
-        recipe_question_new = recipe_question_new[0:15]
-        recipe_choice_new = recipe_choice_new[0:15]
-        recipe_answer_new = recipe_answer_new[0:15]
+        recipe_context_new = recipe_context_new[0:55]
+        recipe_question_new = recipe_question_new[0:55]
+        recipe_choice_new = recipe_choice_new[0:55]
+        recipe_answer_new = recipe_answer_new[0:55]
         train_context = []
         train_question = [] 
         train_choice = []

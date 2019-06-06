@@ -133,14 +133,17 @@ class Attention(nn.Module):
         question_output, u = self.question(input_question)
         
         if torch.cuda.is_available():
-            r = torch.zeros(len(input_context), 1, self.dim).cuda() 
+            r = torch.zeros(len(input_question), 1, self.dim).cuda() 
         else:
-            r = torch.zeros(len(input_context), 1, self.dim)
+            r = torch.zeros(len(input_question), 1, self.dim)
 
         for i in question_output: 
             output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
             output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
+            print(output1.size())
+            print(output2.size())
+            print(output3.size())
             m = torch.tanh(output1 + output2 + output3) 
             s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
             r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_rr(r))
