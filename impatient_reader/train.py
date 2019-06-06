@@ -152,10 +152,10 @@ def main(args):
 
         recipe_context_new,recipe_question_new,recipe_choice_new,recipe_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
         val_context_new,val_question_new,val_choice_new,val_answer_new = shuffle_data(recipe_context_val,recipe_question_val,recipe_choice_val,recipe_answer_val)
-        # recipe_context_new = recipe_context_new[0:55]
-        # recipe_question_new = recipe_question_new[0:55]
-        # recipe_choice_new = recipe_choice_new[0:55]
-        # recipe_answer_new = recipe_answer_new[0:55]
+        recipe_context_new = recipe_context_new[0:55]
+        recipe_question_new = recipe_question_new[0:55]
+        recipe_choice_new = recipe_choice_new[0:55]
+        recipe_answer_new = recipe_answer_new[0:55]
         train_context = []
         train_question = [] 
         train_choice = []
