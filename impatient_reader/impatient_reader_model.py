@@ -121,32 +121,42 @@ class Attention(nn.Module):
         self.dim = word_hidden_size*2
         self.batch_size = batch_size
         self.linear_dm = nn.Linear(self.dim,self.dim)
-        self.linear_rm = nn.Linear(self.dim,self.dim)
-        self.linear_qm = nn.Linear(self.dim,self.dim)
-        self.linear_ms = nn.Linear(self.dim, 1) 
-        self.linear_rr = nn.Linear(self.dim,self.dim)
-        self.linear_rg = nn.Linear(self.dim,self.dim)
-        self.linear_qg = nn.Linear(self.dim,self.dim)
+        self.linear_ms = nn.Linear(self.dim, 1)
+        # self.linear_rm = nn.Linear(self.dim,self.dim)
+        # self.linear_qm = nn.Linear(self.dim,self.dim)
+        # self.linear_rr = nn.Linear(self.dim,self.dim)
+        # self.linear_rg = nn.Linear(self.dim,self.dim)
+        # self.linear_qg = nn.Linear(self.dim,self.dim)
     def forward(self, input_context, input_question): 
         context_output, _ = self.text(input_context)
         
         question_output, u = self.question(input_question)
         
-        if torch.cuda.is_available():
+        if torch.cuda.is_available(): 
             r = torch.zeros(context_output.size()[1], 1, self.dim).cuda() 
         else:
             r = torch.zeros(context_output.size()[1], 1, self.dim)
 
+        # for i in question_output: 
+        #     output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
+        #     output2 = self.linear_rm(r) # (batch, 1, dim)
+        #     output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
+        #     m = torch.tanh(output1 + output2 + output3) 
+        #     s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
+        #     r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_rr(r))
+        # # print('r', r.size())
+        # # print('u', u.size())
+        # g = self.linear_rg(r).squeeze(1) + self.linear_qg(u) # g (batch, 1, 512)
         for i in question_output: 
             output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
-            output2 = self.linear_rm(r) # (batch, 1, dim)
-            output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
+            output2 = self.linear_dm(r) # (batch, 1, dim)
+            output3 = self.linear_dm(i.unsqueeze(1)) # (batch, 1, dim)
             m = torch.tanh(output1 + output2 + output3) 
             s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
-            r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_rr(r))
+            r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_dm(r))
         # print('r', r.size())
         # print('u', u.size())6
-        g = self.linear_rg(r).squeeze(1) + self.linear_qg(u) # g (batch, 1, 512)
+        g = self.linear_dm(r).squeeze(1) + self.linear_dm(u) # g (batch, 1, 512)
 
         return g 
 
