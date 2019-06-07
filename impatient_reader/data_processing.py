@@ -213,24 +213,9 @@ def process_data(from_file='train_text_cloze.json' , tofile='train_cleaned'):
 
 extract_dataset('train.json', 'train_text_cloze.json', 'textual_cloze')
 extract_dataset('val.json', 'val_text_cloze.json', 'textual_cloze')
+print('begin process training data')
 process_data(from_file='train_text_cloze.json' , tofile='train_cleaned.json')
 print('process training data finish')
+print('begin process valid data')
 process_data(from_file='val_text_cloze.json' , tofile='val_cleaned.json')
 print('process validation data finish')
-
-
-def transport_1_0_2(a):
-    max_step = 0
-    for i in a:
-        if max_step < len(i):
-            max_step = len(i)
-    new = []
-    for i in range(max_step):
-        step = []
-        for j in a:
-            if len(j) <= i:
-                step.append(['0', '0'])
-            else:
-                step.append(j[i])      
-        new.append(step)
-    return new

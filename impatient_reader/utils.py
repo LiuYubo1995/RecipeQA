@@ -49,8 +49,6 @@ def load_cleaned_data(file = 'train_cleaned.json'):
     recipe_question = recipe['question']
     recipe_images = recipe['images']
     return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer 
-
-
 def transport_1_0_2(a):
         max_step = 0
         for i in a:

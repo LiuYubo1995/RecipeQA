@@ -10,6 +10,8 @@ import numpy as np
 import re
 import json
 import argparse 
+from utils import shuffle_data, save_model, log_data, load_cleaned_data, accuracy
+
 
 def get_args():
     parser = argparse.ArgumentParser("Hasty_student_recipeQA")
@@ -24,14 +26,6 @@ def get_args():
     args = parser.parse_args() 
     return args 
 
-def accuracy(preds, y):
-    preds = F.softmax(preds, dim=1)
-    correct = 0 
-    pred = preds.max(1, keepdim=True)[1]
-    correct += pred.eq(y.view_as(pred)).sum().item()
-    acc = correct/len(y)
-
-    return acc
 def train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size):
     epoch_loss = 0
     epoch_acc = 0
@@ -69,62 +63,7 @@ def eval_run_batch(model, val_context, val_question, val_choice, val_answer, cri
 
     return epoch_loss / len(val_context), epoch_acc / len(val_context)
 
-def eval_run(model, val_context, val_question, val_choice, val_answer,criterion):
-    if torch.cuda.is_available():
-        val_answer = torch.LongTensor(val_answer).cuda()
-    else:
-        val_answer = torch.LongTensor(val_answer)
-    epoch_loss = 0
-    epoch_acc = 0
-    model.eval() 
-    batch_size = len(val_context) 
 
-    with torch.no_grad():
-        predictions = model(val_context, val_question, val_choice)
-        predictions = torch.cat(predictions, 0).view(-1, len(val_context))
-        predictions = predictions.permute(1, 0)
-        loss = criterion(predictions, val_answer)
-        acc = accuracy(predictions, val_answer)
-    return loss, acc
-
-
-def shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer):
-    #shuffle
-    combine = list(zip(recipe_context,recipe_question,recipe_choice,recipe_answer))
-    np.random.shuffle(combine)
-    recipe_context_shuffled,recipe_question_shuffled, recipe_choice_shuffled, recipe_answer_shuffled = zip(*combine)
-    recipe_context_shuffled = list(recipe_context_shuffled)
-    recipe_question_shuffled = list(recipe_question_shuffled) 
-    recipe_choice_shuffled = list(recipe_choice_shuffled)
-    recipe_answer_shuffled = list(recipe_answer_shuffled)
-    return recipe_context_shuffled,recipe_question_shuffled, recipe_choice_shuffled, recipe_answer_shuffled
-
-def save_model(model, epoch,accuracy, saved_path):
-    torch.save(model.state_dict(),
-               '%s/hasty_student_epoch_%d_%f_acc.pth' % (saved_path, epoch,accuracy))
-    print('Save model with accuracy:',accuracy)
-
-def log_data(log_path,train_loss,train_accuracy,val_loss,val_accuracy):
-    file = open(log_path,'a')
-    if torch.cuda.is_available():
-        data = str(train_loss) +' '+ str(f'{train_accuracy:.2f}') \
-            +' '+ str(val_loss)+ ' ' + str(f'{val_accuracy:.2f}')    #####如果不是batch， 这要改
-    else:
-        data = str(train_loss) + ' '+ str(f'{train_accuracy:.2f}') \
-                +' '+str(val_loss)+' '+str(f'{val_accuracy:.2f}')
-    file.write(data)
-    file.write('\n')
-    file.close() 
-
-def load_cleaned_data(file = 'train_cleaned.json'):
-    file = open(file, 'r', encoding='utf8').read()
-    recipe = json.loads(file) #json file contains data in str, convert str to dict
-    recipe_context = recipe['context']
-    recipe_answer = recipe['answer']
-    recipe_choice = recipe['choice']
-    recipe_question = recipe['question']
-    recipe_images = recipe['images']
-    return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
 
 
 def main(args):

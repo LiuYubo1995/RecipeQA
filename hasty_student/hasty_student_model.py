@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from allennlp.modules.elmo import Elmo, batch_to_ids
-from data_processing import transport_1_0_2
+from utils import transport_1_0_2
 
 class WordLevel(nn.Module):
     
