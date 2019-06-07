@@ -90,7 +90,7 @@ class HierNet(nn.Module):
     def forward(self, input_question, input_choice):
         output_list = []
         for i in input_question: 
-            i = list(i)
+            i = list(i)  
             i = [j.split() for j in i]      
             output, word_hidden_state = self.word_net(i)
             if torch.cuda.is_available():

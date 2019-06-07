@@ -3,6 +3,10 @@ import numpy as np
 import json
 import re
 import torch.utils.data as Data
+from nltk.stem import PorterStemmer
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+from textblob import TextBlob
 
 
 
@@ -177,12 +181,48 @@ def replace_typical_misspell(text):
         return mispellings[match.group(0)]
     return mispellings_re.sub(replace, text)
 
+
+
+def fix_mispell(string):
+
+    string = TextBlob(string).correct()
+
+    return string
+
+
+
+def delete_stopwords(string):
+    list = string.split()
+    result = []
+    stop = stopwords.words('english')
+    for word in list:
+        if word not in stop:
+            result.append(word)
+    return " ".join(result)
+
+
+
+def stemming(string):
+    list = string.split()
+    result = []
+    pt = PorterStemmer()
+    for word in list:
+        result.append(pt.stem(word))
+
+    return " ".join(result)
+
+
+
+
 def process(string):
     
     string = replace_typical_misspell(string)
     string = clean_text(string)
     string = string.lower()
-    # string = string.split()
+    # string = fix_mispell(string)
+    string = delete_stopwords(string)
+    string = stemming(string)
+    # string = string.split() 
     return string
 
 def process_data(from_file='train_text_cloze.json' , tofile='train_cleaned'):
