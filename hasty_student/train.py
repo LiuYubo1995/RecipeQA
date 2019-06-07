@@ -162,6 +162,8 @@ def main(args):
             output = model(question, choice)
             output = torch.cat(output, 0).view(-1, len(answer)) 
             output = output.permute(1, 0)
+            if torch.cuda.is_available():
+                answer = answer.cuda()
             loss = criterion(output, answer)
             acc = accuracy(output, answer)
             loss.backward() 
@@ -174,10 +176,12 @@ def main(args):
             model.eval() 
             with torch.no_grad(): 
                 predictions = model(question, choice)
-                predictions = torch.cat(predictions, 0).view(-1, len(val_question))
+                predictions = torch.cat(predictions, 0).view(-1, len(answer))
                 predictions = predictions.permute(1, 0)
-                loss = criterion(predictions, val_answer)
-                acc = accuracy(predictions, val_answer)
+                if torch.cuda.is_available():
+                    answer = answer.cuda()
+                loss = criterion(predictions, answer)
+                acc = accuracy(predictions, answer)
                 epoch_loss_val += loss.item() 
                 epoch_acc_val += acc
 
