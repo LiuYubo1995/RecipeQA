@@ -2,6 +2,7 @@
 import numpy as np
 import json
 import re
+import torch.utils.data as Data
 
 
 
@@ -181,21 +182,20 @@ def process(string):
     string = replace_typical_misspell(string)
     string = clean_text(string)
     string = string.lower()
-    string = string.split()
+    # string = string.split()
     return string
 
-def pre_process_data(file_name):
-    train_file = open(file_name, 'r', encoding='utf8').read()
-    train_dict = json.loads(train_file)
-    train_data = train_dict['data'] 
-
+def process_data(from_file='train_text_cloze.json' , tofile='train_cleaned'):
+    from_file = open(from_file, 'r', encoding='utf8').read()
+    from_dict = json.loads(from_file)
+    from_data = from_dict['data'] 
 
     recipe_context = []
     recipe_answer = []
     recipe_choice = []
     recipe_question = [] 
     recipe_images = []
-    for recipe in train_data: 
+    for recipe in from_data: 
         new_recipe = [] 
         new_question = []
         new_choice = []
@@ -212,20 +212,51 @@ def pre_process_data(file_name):
         for step in recipe['choice_list']: 
             new_choice.append(process(step))
         recipe_choice.append(new_choice)
-        recipe_answer.append(recipe['answer'])
-    return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
-def transport_1_0_2(a):
-        max_step = 0
-        for i in a:
-            if max_step < len(i):
-                max_step = len(i)
-        new = []
-        for i in range(max_step):
-            step = []
-            for j in a:
-                if len(j) <= i:
-                    step.append(['0','0'])
-                else:
-                    step.append(j[i])      
-            new.append(step)
-        return new
+        recipe_answer.append(recipe['answer'])   
+    recipe = {}
+    recipe['context'] = recipe_context
+    recipe['answer'] = recipe_answer
+    recipe['choice'] = recipe_choice
+    recipe['question'] = recipe_question
+    recipe['images'] = recipe_images
+    with open(tofile, 'w', encoding='utf8') as f:
+        json.dump(recipe, f, indent=4, ensure_ascii=False) # convert dict to str and write, indent means change row
+    return recipe_context, recipe_answer, recipe_choice, recipe_question, recipe_images
+
+#load cleaned data
+def load_cleaned_data(file = 'train_cleaned.json'):
+    file = open(file, 'r', encoding='utf8').read()
+    recipe = json.loads(file) #json file contains data in str, convert str to dict
+    recipe_context = recipe['context']
+    recipe_answer = recipe['answer']
+    recipe_choice = recipe['choice']
+    recipe_question = recipe['question']
+    recipe_images = recipe['images']
+    return recipe_context, recipe_answer, recipe_choice, recipe_question, recipe_images
+
+class recipeDataset(Data.Dataset):
+    def __init__(self, data_file): # data_file='./data/train_cleaned.json'
+        recipe_context, recipe_answer, recipe_choice, recipe_question, recipe_images = load_cleaned_data(data_file)
+        self.recipe_images = recipe_images
+        self.recipe_context = recipe_context
+        self.recipe_question = recipe_question
+        self.recipe_choice = recipe_choice
+        self.answer = recipe_answer
+    def __len__(self):
+        return len(self.recipe_question) # the number of recipe
+    def __getitem__(self, index):
+        image = self.recipe_images[index]
+        context = self.recipe_context[index]
+        question = self.recipe_question[index]
+        choice = self.recipe_choice[index]
+        answer = self.answer[index]
+
+        return image, context, question, choice, answer
+# get data for textual cloze task
+#extract_dataset('./data/train.json', './data/train_text_cloze.json', 'textual_cloze')
+#extract_dataset('./data/val.json', './data/val_text_cloze.json', 'textual_cloze')
+
+# get (recipe_context, recipe_answer, recipe_choice, recipe_question, recipe_images)
+# of recipe data ---- process_data(from_file='train_text_cloze.json')
+process_data(from_file='train_text_cloze.json' , tofile='train_cleaned.json')
+process_data(from_file='val_text_cloze.json' , tofile='val_cleaned.json')

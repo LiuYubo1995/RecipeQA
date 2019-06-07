@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from allennlp.modules.elmo import Elmo, batch_to_ids
-from data_processing import transport_1_0_2
+
 
 class WordLevel(nn.Module):
     
@@ -88,10 +88,10 @@ class HierNet(nn.Module):
         return torch.cat((x1, x2, torch.abs(x1 - x2), x1 * x2), 1)
         
     def forward(self, input_question, input_choice):
-        input_question = transport_1_0_2(input_question) 
-        input_choice = transport_1_0_2(input_choice)
         output_list = []
-        for i in input_question:       
+        for i in input_question: 
+            i = list(i)
+            i = [j.split() for j in i]      
             output, word_hidden_state = self.word_net(i)
             if torch.cuda.is_available():
                 output_list.append(word_hidden_state.cpu().detach().numpy())
@@ -105,6 +105,8 @@ class HierNet(nn.Module):
         #hidden_output_question = self.fc1(hidden_output_question)
         output_choice_list = []
         for i in input_choice:  
+            i = list(i)
+            i = [j.split() for j in i]
             output_choice, hidden_output_choice = self.choice(i)
             #hidden_output_choice = self.fc2(hidden_output_choice)
     
