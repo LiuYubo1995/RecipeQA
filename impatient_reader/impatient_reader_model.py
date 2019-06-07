@@ -171,9 +171,11 @@ class Impatient_Reader_Model(nn.Module):
     
 
     def exponent_neg_manhattan_distance(self, x1, x2):
-        return torch.exp(-torch.sum(torch.abs(x1 - x2), dim=1))
-    def cosine_neg_distance(self, x1, x2):
-        return torch.mm(x1, x2.transpose(0, 1))/(torch.norm(x1, dim=1)*torch.norm(x2,dim=1))
+        return torch.sum(torch.abs(x1 - x2), dim=1)
+    def cosine_dot_distance(self, x1, x2):
+        return torch.sum(torch.mul(x1, x2), dim=1)
+    def Infersent(self, x1, x2):
+        return torch.cat((x1, x2, torch.abs(x1 - x2), x1 * x2), 1)
 
     def forward(self, input_context,  input_question, input_choice):
         input_context = transport_1_0_2(input_context)
@@ -186,7 +188,7 @@ class Impatient_Reader_Model(nn.Module):
         for i in input_choice:  
             output_choice, hidden_output_choice = self.choice(i)
             #hidden_output_choice = self.fc2(hidden_output_choice)
-            similarity_scores = torch.sum(torch.mul(g, hidden_output_choice), dim=1)
+            similarity_scores = self.cosine_dot_distance(g, hidden_output_choice)
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             
