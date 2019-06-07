@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import re
 import json
-from data_processing import pre_process_data
+from data_processing import load_cleaned_data
 import argparse 
 
 def get_args():
@@ -129,8 +129,8 @@ def main(args):
     sent_hidden_size = args.sent_hidden_size
 
 
-    recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = pre_process_data('train_text_cloze.json')
-    recipe_context_val, recipe_images_val, recipe_question_val, recipe_choice_val, recipe_answer_val = pre_process_data('val_text_cloze.json')
+    recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = load_cleaned_data('train_cleaned.json')
+    recipe_context_val, recipe_images_val, recipe_question_val, recipe_choice_val, recipe_answer_val = load_cleaned_data('val_cleaned.json')
 
     model = Impatient_Reader_Model(word_hidden_size, sent_hidden_size, batch_size)
     if args.load_model: 

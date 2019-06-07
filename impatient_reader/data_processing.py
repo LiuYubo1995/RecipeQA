@@ -5,7 +5,8 @@ import re
 from nltk.stem import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
-from textblob import TextBlob
+from nltk.tokenize import word_tokenize
+from nltk.tokenize import sent_tokenize
 
 
 
@@ -30,18 +31,6 @@ text_cloze_train = json.loads(open('train_text_cloze.json', 'r', encoding='utf8'
 #print(len(text_cloze_train['data']))
 
 
-
-
-def clean_text(text):
-    puncts = [',', '.', '"', ':', ')', '(', '-', '!', '?', '|', ';', "'", '$', '&', '/', '[', ']', '>', '%', '=', '#', '*', '+', '\\', '•',  '~', '@', '£', 
-'·', '_', '{', '}', '©', '^', '®', '`',  '<', '→', '°', '€', '™', '›',  '♥', '←', '×', '§', '″', '′', 'Â', '█', '½', 'à', '…', 
-'“', '★', '”', '–', '●', 'â', '►', '−', '¢', '²', '¬', '░', '¶', '↑', '±', '¿', '▾', '═', '¦', '║', '―', '¥', '▓', '—', '‹', '─', 
-'▒', '：', '¼', '⊕', '▼', '▪', '†', '■', '’', '▀', '¨', '▄', '♫', '☆', 'é', '¯', '♦', '¤', '▲', 'è', '¸', '¾', 'Ã', '⋅', '‘', '∞', 
-'∙', '）', '↓', '、', '│', '（', '»', '，', '♪', '╩', '╚', '³', '・', '╦', '╣', '╔', '╗', '▬', '❤', 'ï', 'Ø', '¹', '≤', '‡', '√', ]
-    text = str(text)
-    for punct in puncts:
-        text = text.replace(punct, '')
-    return text
 
 
 mispell_dict = {"aren't" : "are not", 
@@ -180,54 +169,28 @@ def replace_typical_misspell(text):
         return mispellings[match.group(0)]
     return mispellings_re.sub(replace, text)
 
-def fix_mispell(string):
-
-    string = TextBlob(string).correct()
-
-    return string
-
-def delete_stopwords(string):
-    list = string.split()
-    result = []
-    stop = stopwords.words('english')
-    for word in list:
-        if word not in stop:
-            result.append(word)
-    return " ".join(result)
-
-def stemming(string):
-    list = string.split()
-    result = []
-    pt = PorterStemmer()
-    for word in list:
-        result.append(pt.stem(word))
-
-    return " ".join(result)
 
 def process(string):
     
     string = replace_typical_misspell(string)
-    string = clean_text(string)
+    string = re.sub(r"[^a-zA-Z0-9]"," ",string)
     string = string.lower()
-    #string = fix_mispell(string)
-    string = delete_stopwords(string)
-    string = stemming(string)
-    string = string.split()
+    string = word_tokenize(string) 
+    string = [w for w in string if w not in stopwords.words('english')]
+    string = [PorterStemmer().stem(w) for w in string] 
     return string
 
-def pre_process_data(file_name):
-    train_file = open(file_name, 'r', encoding='utf8').read()
-    train_dict = json.loads(train_file)
-    train_data = train_dict['data'] 
-
-
+def process_data(from_file='train_text_cloze.json' , tofile='train_cleaned'):
+    from_file = open(from_file, 'r', encoding='utf8').read()
+    from_dict = json.loads(from_file)
+    from_data = from_dict['data'] 
 
     recipe_context = []
     recipe_answer = []
     recipe_choice = []
     recipe_question = [] 
     recipe_images = []
-    for recipe in train_data: 
+    for recipe in from_data: 
         new_recipe = [] 
         new_question = []
         new_choice = []
@@ -244,8 +207,33 @@ def pre_process_data(file_name):
         for step in recipe['choice_list']: 
             new_choice.append(process(step))
         recipe_choice.append(new_choice)
-        recipe_answer.append(recipe['answer'])
+        recipe_answer.append(recipe['answer'])   
+    recipe = {}
+    recipe['context'] = recipe_context
+    recipe['answer'] = recipe_answer
+    recipe['choice'] = recipe_choice
+    recipe['question'] = recipe_question
+    recipe['images'] = recipe_images
+    with open(tofile, 'w', encoding='utf8') as f:
+        json.dump(recipe, f, indent=4, ensure_ascii=False) # convert dict to str and write, indent means change row
     return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
+
+#load cleaned data
+def load_cleaned_data(file = 'train_cleaned.json'):
+    file = open(file, 'r', encoding='utf8').read()
+    recipe = json.loads(file) #json file contains data in str, convert str to dict
+    recipe_context = recipe['context']
+    recipe_answer = recipe['answer']
+    recipe_choice = recipe['choice']
+    recipe_question = recipe['question']
+    recipe_images = recipe['images']
+    return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
+
+process_data(from_file='train_text_cloze.json' , tofile='train_cleaned.json')
+print('process training data finish')
+process_data(from_file='val_text_cloze.json' , tofile='val_cleaned.json')
+print('process validation data finish')
+
 
 def transport_1_0_2(a):
     max_step = 0
