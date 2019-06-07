@@ -210,17 +210,7 @@ def process_data(from_file='train_text_cloze.json' , tofile='train_cleaned'):
     return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
 
 #load cleaned data
-def load_cleaned_data(file = 'train_cleaned.json'):
-    file = open(file, 'r', encoding='utf8').read()
-    recipe = json.loads(file) #json file contains data in str, convert str to dict
-    recipe_context = recipe['context']
-    recipe_answer = recipe['answer']
-    recipe_choice = recipe['choice']
-    recipe_question = recipe['question']
-    recipe_images = recipe['images']
-    return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
 
-    
 extract_dataset('train.json', 'train_text_cloze.json', 'textual_cloze')
 extract_dataset('val.json', 'val_text_cloze.json', 'textual_cloze')
 process_data(from_file='train_text_cloze.json' , tofile='train_cleaned.json')

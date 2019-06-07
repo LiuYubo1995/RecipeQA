@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 import re
 import json
-from data_processing import load_cleaned_data
 import argparse 
 
 def get_args():
@@ -116,8 +115,16 @@ def log_data(log_path,train_loss,train_accuracy,val_loss,val_accuracy):
     file.write(data)
     file.write('\n')
     file.close() 
-        
 
+def load_cleaned_data(file = 'train_cleaned.json'):
+    file = open(file, 'r', encoding='utf8').read()
+    recipe = json.loads(file) #json file contains data in str, convert str to dict
+    recipe_context = recipe['context']
+    recipe_answer = recipe['answer']
+    recipe_choice = recipe['choice']
+    recipe_question = recipe['question']
+    recipe_images = recipe['images']
+    return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
 
 
 def main(args):
