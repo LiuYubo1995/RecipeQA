@@ -24,11 +24,8 @@ def extract_dataset(path, store_path, task):
         json.dump(new_data, f, indent=4, ensure_ascii=False) # convert dict to str and write, indent means change row
 
 
-extract_dataset('train.json', 'train_text_cloze.json', 'textual_cloze')
-extract_dataset('val.json', 'val_text_cloze.json', 'textual_cloze')
 
-text_cloze_train = json.loads(open('train_text_cloze.json', 'r', encoding='utf8').read())
-#print(len(text_cloze_train['data']))
+
 
 
 
@@ -232,6 +229,10 @@ def load_cleaned_data(file = 'train_cleaned.json'):
     recipe_images = recipe['images']
     return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer
 
+
+
+extract_dataset('train.json', 'train_text_cloze.json', 'textual_cloze')
+extract_dataset('val.json', 'val_text_cloze.json', 'textual_cloze')
 process_data(from_file='train_text_cloze.json' , tofile='train_cleaned.json')
 print('process training data finish')
 process_data(from_file='val_text_cloze.json' , tofile='val_cleaned.json')
