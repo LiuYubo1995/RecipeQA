@@ -35,45 +35,6 @@ def accuracy(preds, y):
     acc = correct/len(y)
 
     return acc
-# def train_run(model, train_question, train_answer, train_choice, optimizer, criterion, batch_size):
-#     epoch_loss = 0
-#     epoch_acc = 0
-#     model.train()
-#     a = 0
-#     # max_acc = 0.0
-#     for batch_question, batch_answer, batch_choice in tqdm(zip(train_question, train_answer, train_choice)):          
-#         optimizer.zero_grad() 
-#         output = model(batch_question, batch_choice)
-#         output = torch.cat(output, 0).view(-1, len(batch_question))
-#         output = output.permute(1, 0)
-#         loss = criterion(output, batch_answer)
-#         acc = accuracy(output, batch_answer)
-#         loss.backward() 
-#         optimizer.step()
-#         epoch_loss += loss.item() 
-#         epoch_acc += acc
-
-#     return epoch_loss / len(train_question), epoch_acc / len(train_question) 
-
-
-# def eval_run(model, val_question, val_answer, val_choice, criterion):
-#     if torch.cuda.is_available():
-#         val_answer = torch.LongTensor(val_answer).cuda()
-#     else:
-#         val_answer = torch.LongTensor(val_answer)
-#     epoch_loss = 0
-#     epoch_acc = 0
-#     model.eval() 
-#     batch_size = len(val_question) 
-
-#     with torch.no_grad():
-#         predictions = model(val_question, val_choice)
-#         predictions = torch.cat(predictions, 0).view(-1, len(val_question))
-#         predictions = predictions.permute(1, 0)
-#         loss = criterion(predictions, val_answer)
-#         acc = accuracy(predictions, val_answer)
-#     return loss, acc
-
 
 def save_model(model, epoch,accuracy, saved_path):
     torch.save(model.state_dict(),
@@ -120,9 +81,6 @@ def main(args):
 
         )
     
-    # recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = pre_process_data('train_text_cloze.json')
-    # recipe_context_valid, recipe_images_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid = pre_process_data('val_text_cloze.json')
-
     model = HierNet(word_hidden_size, sent_hidden_size)
     if args.load_model: 
         model.load_state_dict(torch.load(args.load_model))
@@ -138,26 +96,16 @@ def main(args):
     criterion = criterion.to(device)
     max_val_acc = 0.0
     for epoch in tqdm(range(num_epochs)):
-        print(epoch)
+
+
         epoch_loss_train = 0
         epoch_acc_train = 0
         epoch_loss_val = 0
         epoch_acc_val = 0
-        # recipe_context_new,recipe_question_new,recipe_choice_new,recipe_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
-        # train_question = []
-        # train_answer = []
-        # train_choice = []
-        # for i in tqdm(range(0, len(recipe_question_new), batch_size)):
-        #     train_question.append(recipe_question_new[i : i + batch_size])  
-        #     train_choice.append(recipe_choice_new[i : i + batch_size])
-        #     actual_scores = recipe_answer_new[i : i + batch_size]
-        #     if torch.cuda.is_available():
-        #         actual_scores = torch.LongTensor(actual_scores).cuda()
-        #     else: 
-        #         actual_scores = torch.LongTensor(actual_scores)
-        #     train_answer.append(actual_scores) 
+
+        model.train()
         for image, context, question, choice, answer in tqdm(loader_train):
-            model.train()
+    
             optimizer.zero_grad() 
             output = model(question, choice)
             output = torch.cat(output, 0).view(-1, len(answer)) 
@@ -171,9 +119,10 @@ def main(args):
             epoch_loss_train += loss.item() 
             epoch_acc_train += acc
 
+        model.eval()
         for image, context, question, choice, answer in tqdm(loader_val):
             
-            model.eval() 
+ 
             with torch.no_grad(): 
                 predictions = model(question, choice)
                 predictions = torch.cat(predictions, 0).view(-1, len(answer))

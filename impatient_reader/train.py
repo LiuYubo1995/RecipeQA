@@ -9,8 +9,10 @@ import pandas as pd
 import numpy as np
 import re
 import json
-from data_processing import pre_process_data
 import argparse 
+from data_processing import load_cleaned_data
+from data_processing import recipeDataset
+import torch.utils.data as Data
 
 def get_args():
     parser = argparse.ArgumentParser("Hasty_student_recipeQA")
@@ -32,73 +34,7 @@ def accuracy(preds, y):
     correct += pred.eq(y.view_as(pred)).sum().item()
     acc = correct/len(y)
 
-    return acc
-def train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size):
-    epoch_loss = 0
-    epoch_acc = 0
-    model.train()
-    a = 0
-    # max_acc = 0.0
-    for batch_context, batch_question, batch_choice, batch_answer in tqdm(zip(train_context, train_question, train_choice, train_answer)):          
-        optimizer.zero_grad() 
-        output = model(batch_context, batch_question, batch_choice)
-        output = torch.cat(output, 0).view(-1, len(batch_context))
-        output = output.permute(1, 0)  
-        loss = criterion(output, batch_answer)
-        acc = accuracy(output, batch_answer)
-        loss.backward() 
-        optimizer.step()
-        epoch_loss += loss.item() 
-        epoch_acc += acc
-
-    return epoch_loss / len(train_context), epoch_acc / len(train_context) 
-
-
-def eval_run_batch(model, val_context, val_question, val_choice, val_answer, criterion, batch_size):
-    epoch_loss = 0
-    epoch_acc = 0
-    model.eval()
-    with torch.no_grad():
-        for batch_context, batch_question, batch_choice, batch_answer in tqdm(zip(val_context, val_question, val_choice, val_answer)):           
-            output = model(batch_context, batch_question, batch_choice)
-            output = torch.cat(output, 0).view(-1, len(batch_context))
-            output = output.permute(1, 0)  
-            loss = criterion(output, batch_answer)
-            acc = accuracy(output, batch_answer) 
-            epoch_loss += loss.item() 
-            epoch_acc += acc
-
-    return epoch_loss / len(val_context), epoch_acc / len(val_context)
-
-def eval_run(model, val_context, val_question, val_choice, val_answer,criterion):
-    if torch.cuda.is_available():
-        val_answer = torch.LongTensor(val_answer).cuda()
-    else:
-        val_answer = torch.LongTensor(val_answer)
-    epoch_loss = 0
-    epoch_acc = 0
-    model.eval() 
-    batch_size = len(val_context) 
-
-    with torch.no_grad():
-        predictions = model(val_context, val_question, val_choice)
-        predictions = torch.cat(predictions, 0).view(-1, len(val_context))
-        predictions = predictions.permute(1, 0)
-        loss = criterion(predictions, val_answer)
-        acc = accuracy(predictions, val_answer)
-    return loss, acc
-
-
-def shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer):
-    #shuffle
-    combine = list(zip(recipe_context,recipe_question,recipe_choice,recipe_answer))
-    np.random.shuffle(combine)
-    recipe_context_shuffled,recipe_question_shuffled, recipe_choice_shuffled, recipe_answer_shuffled = zip(*combine)
-    recipe_context_shuffled = list(recipe_context_shuffled)
-    recipe_question_shuffled = list(recipe_question_shuffled) 
-    recipe_choice_shuffled = list(recipe_choice_shuffled)
-    recipe_answer_shuffled = list(recipe_answer_shuffled)
-    return recipe_context_shuffled,recipe_question_shuffled, recipe_choice_shuffled, recipe_answer_shuffled
+    return acc 
 
 def save_model(model, epoch,accuracy, saved_path):
     torch.save(model.state_dict(),
@@ -128,9 +64,22 @@ def main(args):
     word_hidden_size = args.word_hidden_size
     sent_hidden_size = args.sent_hidden_size
 
+    train_dataset = recipeDataset('train_cleaned.json')
+    val_dataset = recipeDataset('val_cleaned.json')
 
-    recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = pre_process_data('train_text_cloze.json')
-    recipe_context_val, recipe_images_val, recipe_question_val, recipe_choice_val, recipe_answer_val = pre_process_data('val_text_cloze.json')
+    loader_train = Data.DataLoader(
+        dataset=train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=2,
+        )
+    loader_val = Data.DataLoader(
+        dataset=val_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=2,
+
+        )
 
     model = Impatient_Reader_Model(word_hidden_size, sent_hidden_size, batch_size)
     if args.load_model: 
@@ -148,50 +97,49 @@ def main(args):
     max_val_acc = 0.0
     for epoch in tqdm(range(num_epochs)):
 
-        print(epoch)
+        epoch_loss_train = 0
+        epoch_acc_train = 0
+        epoch_loss_val = 0
+        epoch_acc_val = 0
 
-        recipe_context_new,recipe_question_new,recipe_choice_new,recipe_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
-        val_context_new,val_question_new,val_choice_new,val_answer_new = shuffle_data(recipe_context_val,recipe_question_val,recipe_choice_val,recipe_answer_val)
-        # recipe_context_new = recipe_context_new[0:15]
-        # recipe_question_new = recipe_question_new[0:15]
-        # recipe_choice_new = recipe_choice_new[0:15]
-        # recipe_answer_new = recipe_answer_new[0:15]
-        train_context = []
-        train_question = [] 
-        train_choice = []
-        train_answer = []
-
-        for i in tqdm(range(0, len(recipe_question_new), batch_size)):
-            train_context.append(recipe_context_new[i : i + batch_size]) 
-            train_question.append(recipe_question_new[i : i + batch_size])  
-            train_choice.append(recipe_choice_new[i : i + batch_size])
-            actual_scores = recipe_answer_new[i : i + batch_size]
+        model.train()
+        for image, context, question, choice, answer in tqdm(loader_train):
+        
+            optimizer.zero_grad() 
+            output = model(context, question, choice)
+            output = torch.cat(output, 0).view(-1, len(answer)) 
+            output = output.permute(1, 0)
             if torch.cuda.is_available():
-                actual_scores = torch.LongTensor(actual_scores).cuda()
-            else:
-                actual_scores = torch.LongTensor(actual_scores)
-            train_answer.append(actual_scores)
+                answer = answer.cuda()
+            loss = criterion(output, answer)
+            acc = accuracy(output, answer)
+            loss.backward() 
+            optimizer.step()
+            epoch_loss_train += loss.item() 
+            epoch_acc_train += acc
 
 
-        val_context = []
-        val_question = [] 
-        val_choice = []
-        val_answer = []
+        model.eval()
+        for image, context, question, choice, answer in tqdm(loader_val):
+ 
+            with torch.no_grad(): 
+                predictions = model(context, question, choice)
+                predictions = torch.cat(predictions, 0).view(-1, len(answer))
+                predictions = predictions.permute(1, 0)
+                if torch.cuda.is_available():
+                    answer = answer.cuda()
+                loss = criterion(predictions, answer)
+                acc = accuracy(predictions, answer)
+                epoch_loss_val += loss.item() 
+                epoch_acc_val += acc
 
-        for i in tqdm(range(0, len(val_question_new), batch_size)):
-            val_context.append(val_context_new[i : i + batch_size]) 
-            val_question.append(val_question_new[i : i + batch_size])  
-            val_choice.append(val_choice_new[i : i + batch_size])
-            actual_scores = val_answer_new[i : i + batch_size]
-            if torch.cuda.is_available():
-                actual_scores = torch.LongTensor(actual_scores).cuda()
-            else:
-                actual_scores = torch.LongTensor(actual_scores)
-            val_answer.append(actual_scores)  
 
-        train_loss, train_acc = train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size)
-        valid_loss, valid_acc = eval_run_batch(model, val_context, val_question, val_choice, val_answer, criterion, batch_size)
-        #valid_loss, valid_acc = eval_run(model, recipe_context_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid, criterion)
+        train_loss = epoch_loss_train / len(loader_train)
+        train_acc = epoch_acc_train / len(loader_train)
+        valid_loss = epoch_loss_val / len(loader_val)
+        valid_acc = epoch_acc_val / len(loader_val)
+
+
         log_data(args.log_path, train_loss, train_acc, valid_loss, valid_acc)
 
         print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}%')
@@ -202,4 +150,4 @@ def main(args):
 
 if __name__ == "__main__":
     args = get_args()
-    main(args)
+    main(args)       
