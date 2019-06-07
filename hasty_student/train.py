@@ -84,10 +84,10 @@ def log_data(log_path,train_loss,train_accuracy,val_loss,val_accuracy):
     file = open(log_path,'a')
     if torch.cuda.is_available():
         data = str(train_loss) +' '+ str(f'{train_accuracy:.2f}') \
-            +' '+ str(val_loss.cpu().numpy())+ ' ' + str(f'{val_accuracy:.2f}')
+            +' '+ str(val_loss)+ ' ' + str(f'{val_accuracy:.2f}')
     else:
         data = str(train_loss) + ' '+ str(f'{train_accuracy:.2f}') \
-                +' '+str(val_loss.numpy())+' '+str(f'{val_accuracy:.2f}')
+                +' '+str(val_loss)+' '+str(f'{val_accuracy:.2f}')
     file.write(data)
     file.write('\n')
     file.close() 
@@ -171,7 +171,7 @@ def main(args):
             epoch_loss_train += loss.item() 
             epoch_acc_train += acc
 
-        for image, context, question, choice, answer in loader_val:
+        for image, context, question, choice, answer in tqdm(loader_val):
             
             model.eval() 
             with torch.no_grad(): 
