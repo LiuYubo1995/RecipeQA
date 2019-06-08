@@ -107,7 +107,7 @@ def main(args):
         train_choice = []
         train_answer = []
 
-        for i in tqdm(range(0, len(recipe_question_new), batch_size)):
+        for i in range(0, len(recipe_question_new), batch_size):
             train_context.append(recipe_context_new[i : i + batch_size]) 
             train_question.append(recipe_question_new[i : i + batch_size])  
             train_choice.append(recipe_choice_new[i : i + batch_size])
@@ -117,6 +117,7 @@ def main(args):
             else:
                 actual_scores = torch.LongTensor(actual_scores)
             train_answer.append(actual_scores)
+        print(len(train_context))
 
 
         val_context = []
@@ -124,7 +125,7 @@ def main(args):
         val_choice = []
         val_answer = []
 
-        for i in tqdm(range(0, len(val_question_new), batch_size)):
+        for i in range(0, len(val_question_new), batch_size):
             val_context.append(val_context_new[i : i + batch_size]) 
             val_question.append(val_question_new[i : i + batch_size])  
             val_choice.append(val_choice_new[i : i + batch_size])
@@ -134,6 +135,7 @@ def main(args):
             else:
                 actual_scores = torch.LongTensor(actual_scores)
             val_answer.append(actual_scores)  
+        print(len(val_context))
 
         train_loss, train_acc = train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size)
         valid_loss, valid_acc = eval_run_batch(model, val_context, val_question, val_choice, val_answer, criterion, batch_size)
