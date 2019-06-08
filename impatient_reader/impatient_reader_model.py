@@ -186,6 +186,9 @@ class Impatient_Reader_Model(nn.Module):
 
         output_choice_list = []
         for i in input_choice:  
+            # similarity_scores = self.Infersent(hidden_output_question, hidden_output_choice)
+            # similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
+            # similarity_scores = self.fc4(similarity_scores)
             output_choice, hidden_output_choice = self.choice(i)
             #hidden_output_choice = self.fc2(hidden_output_choice)
             similarity_scores = self.cosine_dot_distance(g, hidden_output_choice)
