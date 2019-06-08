@@ -49,6 +49,25 @@ def load_cleaned_data(file = 'train_cleaned.json'):
     recipe_question = recipe['question']
     recipe_images = recipe['images']
     return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer 
+
+def split_batch(batch_size, recipe_context_new, recipe_question_new, recipe_choice_new, recipe_answer_new):
+    train_context = []
+    train_question = []
+    train_answer = []
+    train_choice = []
+    for i in range(0, len(recipe_question_new), batch_size):
+        train_context.append(recipe_context_new[i : i + batch_size])
+        train_question.append(recipe_question_new[i : i + batch_size])  
+        train_choice.append(recipe_choice_new[i : i + batch_size])
+        actual_scores = recipe_answer_new[i : i + batch_size]
+        if torch.cuda.is_available():
+            actual_scores = torch.LongTensor(actual_scores).cuda()
+        else: 
+            actual_scores = torch.LongTensor(actual_scores)
+        train_answer.append(actual_scores) 
+    return train_context, train_question, train_choice, train_answer
+
+    
 def transport_1_0_2(a):
         max_step = 0
         for i in a:

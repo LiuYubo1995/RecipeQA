@@ -10,7 +10,7 @@ import numpy as np
 import re
 import json
 import argparse 
-from utils import shuffle_data, save_model, log_data, load_cleaned_data, accuracy
+from utils import shuffle_data, save_model, log_data, load_cleaned_data, accuracy, split_batch
 
 def get_args():
     parser = argparse.ArgumentParser("Hasty_student_recipeQA")
@@ -30,8 +30,6 @@ def train_run(model, train_question, train_answer, train_choice, optimizer, crit
     epoch_loss = 0
     epoch_acc = 0
     model.train()
-    a = 0
-    # max_acc = 0.0
     for batch_question, batch_answer, batch_choice in tqdm(zip(train_question, train_answer, train_choice)):          
         optimizer.zero_grad() 
         output = model(batch_question, batch_choice)
@@ -77,12 +75,6 @@ def main(args):
     word_hidden_size = args.word_hidden_size
     sent_hidden_size = args.sent_hidden_size
 
-
-    recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = load_cleaned_data('train_cleaned.json')
-    recipe_context_valid, recipe_images_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid = load_cleaned_data('val_cleaned.json')
-
-
-
     model = HierNet(word_hidden_size, sent_hidden_size)
     if args.load_model: 
         model.load_state_dict(torch.load(args.load_model))
@@ -96,25 +88,19 @@ def main(args):
 
     model = model.to(device)
     criterion = criterion.to(device)
+
     max_val_acc = 0.0
+    recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = load_cleaned_data('train_cleaned.json')
+    recipe_context_valid, recipe_images_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid = load_cleaned_data('val_cleaned.json')
+
     for epoch in tqdm(range(num_epochs)):
 
         print(epoch)
 
-        recipe_context_new,recipe_question_new,recipe_choice_new,recipe_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
-        train_question = []
-        train_answer = []
-        train_choice = []
-        for i in range(0, len(recipe_question_new), batch_size):
-            train_question.append(recipe_question_new[i : i + batch_size])  
-            train_choice.append(recipe_choice_new[i : i + batch_size])
-            actual_scores = recipe_answer_new[i : i + batch_size]
-            if torch.cuda.is_available():
-                actual_scores = torch.LongTensor(actual_scores).cuda()
-            else: 
-                actual_scores = torch.LongTensor(actual_scores)
-            train_answer.append(actual_scores) 
-        print(len(train_question))
+        train_context_new,train_question_new,train_choice_new,train_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
+        train_context, train_question, train_choice, train_answer = split_batch(batch_size, train_context_new,train_question_new,train_choice_new,train_answer_new)
+        
+        print(len(train_question)) 
 
         train_loss, train_acc = train_run(model, train_question, train_answer, train_choice, optimizer, criterion, batch_size)
         valid_loss, valid_acc = eval_run(model, recipe_question_valid, recipe_answer_valid, recipe_choice_valid, criterion)
@@ -124,7 +110,6 @@ def main(args):
         if valid_acc > max_val_acc:
             max_val_acc = valid_acc
             save_model(model,epoch,valid_acc,args.saved_path)
-        
 
 if __name__ == "__main__":
     args = get_args()

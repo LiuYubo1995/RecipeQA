@@ -1,5 +1,6 @@
 
 from impatient_reader_model import Impatient_Reader_Model
+from utils import shuffle_data, save_model, log_data, load_cleaned_data, accuracy, split_batch
 import torch.nn.functional as F
 import torch.nn as nn
 import torch.optim as optim
@@ -10,7 +11,6 @@ import numpy as np
 import re
 import json
 import argparse 
-from utils import shuffle_data, save_model, log_data, load_cleaned_data, accuracy
 
 
 def get_args():
@@ -30,8 +30,6 @@ def train_run(model, train_context, train_question, train_choice, train_answer, 
     epoch_loss = 0
     epoch_acc = 0
     model.train()
-    a = 0
-    # max_acc = 0.0
     for batch_context, batch_question, batch_choice, batch_answer in tqdm(zip(train_context, train_question, train_choice, train_answer)):          
         optimizer.zero_grad() 
         output = model(batch_context, batch_question, batch_choice)
@@ -96,45 +94,16 @@ def main(args):
 
         print(epoch)
 
-        recipe_context_new,recipe_question_new,recipe_choice_new,recipe_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
+        train_context_new,train_question_new,train_choice_new,train_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
         val_context_new,val_question_new,val_choice_new,val_answer_new = shuffle_data(recipe_context_val,recipe_question_val,recipe_choice_val,recipe_answer_val)
         # recipe_context_new = recipe_context_new[0:15]
         # recipe_question_new = recipe_question_new[0:15]
         # recipe_choice_new = recipe_choice_new[0:15]
         # recipe_answer_new = recipe_answer_new[0:15]
-        train_context = []
-        train_question = [] 
-        train_choice = []
-        train_answer = []
+        train_context, train_question, train_choice, train_answer = split_batch(batch_size, train_context_new,train_question_new,train_choice_new,train_answer_new)
+        val_context, val_question, val_choice, val_answer = split_batch(batch_size, val_context_new,val_question_new,val_choice_new,val_answer_new)
 
-        for i in range(0, len(recipe_question_new), batch_size):
-            train_context.append(recipe_context_new[i : i + batch_size]) 
-            train_question.append(recipe_question_new[i : i + batch_size])  
-            train_choice.append(recipe_choice_new[i : i + batch_size])
-            actual_scores = recipe_answer_new[i : i + batch_size]
-            if torch.cuda.is_available():
-                actual_scores = torch.LongTensor(actual_scores).cuda()
-            else:
-                actual_scores = torch.LongTensor(actual_scores)
-            train_answer.append(actual_scores)
-        print(len(train_context))
-
-
-        val_context = []
-        val_question = [] 
-        val_choice = []
-        val_answer = []
-
-        for i in range(0, len(val_question_new), batch_size):
-            val_context.append(val_context_new[i : i + batch_size]) 
-            val_question.append(val_question_new[i : i + batch_size])  
-            val_choice.append(val_choice_new[i : i + batch_size])
-            actual_scores = val_answer_new[i : i + batch_size]
-            if torch.cuda.is_available():
-                actual_scores = torch.LongTensor(actual_scores).cuda()
-            else:
-                actual_scores = torch.LongTensor(actual_scores)
-            val_answer.append(actual_scores)  
+        print(len(train_context)) 
         print(len(val_context))
 
         train_loss, train_acc = train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size)
