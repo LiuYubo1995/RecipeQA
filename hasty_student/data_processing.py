@@ -25,11 +25,6 @@ def extract_dataset(path, store_path, task):
 
 
 
-
-
-
-
-
 mispell_dict = {"aren't" : "are not", 
 "can't" : "cannot",
 "couldn't" : "could not",
@@ -154,7 +149,7 @@ mispell_dict = {"aren't" : "are not",
 "Wasn't": "was not",
 "We'll":" will",
 "Didn't": "did not",
-"'s":"is"}
+"'s":"is"} 
 
 def _get_mispell(mispell_dict):
     mispell_re = re.compile('(%s)' % '|'.join(mispell_dict.keys()))
@@ -174,8 +169,8 @@ def process(string):
     string = re.sub(r"[^a-zA-Z0-9]"," ",string)
     string = string.lower() 
     string = word_tokenize(string) 
-    string = [w for w in string if w not in stopwords.words('english')]
-    string = [PorterStemmer().stem(w) for w in string] 
+    #string = [w for w in string if w not in stopwords.words('english')]
+    #string = [PorterStemmer().stem(w) for w in string] 
     return string
 
 def process_data(from_file='train_text_cloze.json' , tofile='train_cleaned'):
