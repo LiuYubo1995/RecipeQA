@@ -7,4 +7,5 @@ impatient_reader_simple_baseline/trained_models/*
 impatient_reader_simple_baseline/result/*
 impatient_reader/trained_models/*
 impatient_reader/result/*
-
+hasty_simple_baseline/my_doc2vec_model.docvecs.vectors_docs.npy
+impatient_reader_simple_baseline/my_doc2vec_model.docvecs.vectors_docs.npy
