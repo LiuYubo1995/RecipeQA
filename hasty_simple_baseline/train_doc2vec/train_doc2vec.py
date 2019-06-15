@@ -51,10 +51,10 @@ def read_corpus(data_list, tokens_only=False):
             # For training data, add tags     
             yield gensim.models.doc2vec.TaggedDocument(gensim.utils.simple_preprocess(line), [i])
 train_corpus = list(read_corpus(new_train))
-test_corpus = list(read_corpus(new_val, tokens_only=True)) 
+test_corpus = list(read_corpus(new_val))
 model = gensim.models.doc2vec.Doc2Vec(vector_size=100, min_count=2, epochs=100)
-model.build_vocab(train_corpus)
+model.build_vocab(test_corpus)
 print(len(model.wv.vocab))
 model.train(train_corpus, total_examples=model.corpus_count, epochs=model.epochs)
-fname = get_tmpfile("../my_doc2vec_model")
+fname = get_tmpfile("../my_doc2vec_model_val")
 model.save(fname)

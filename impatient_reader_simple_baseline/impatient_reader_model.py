@@ -7,6 +7,7 @@ from gensim.test.utils import get_tmpfile
 import numpy as np
 import gensim
 
+
 class contextNet(nn.Module):
     def __init__(self, word_hidden_size, Doc2vec_model):
         super(contextNet, self).__init__()
