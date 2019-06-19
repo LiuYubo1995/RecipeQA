@@ -24,8 +24,8 @@ def get_args():
     parser.add_argument("--log_path", type=str, default="result/log_data.txt")
     parser.add_argument("--saved_path", type=str, default="trained_models")
     parser.add_argument("--load_model", type=str, default=None)
-    parser.add_argument("--Doc2vec_model", type=str, default="my_doc2vec_model")
-    parser.add_argument("--seed", type=str, default=1)
+    parser.add_argument("--Doc2vec_model", type=str, default="/Users/LYB/Desktop/coursework/Msc-project/recipe_baseline/impatient_reader_simple_baseline/train_doc2vec/my_doc2vec_model")
+    parser.add_argument("--seed", type=str, default=4)
     args = parser.parse_args() 
     return args 
 
@@ -43,8 +43,8 @@ def train_run(model, train_context, train_question, train_choice, train_answer, 
         acc = accuracy(output, batch_answer) 
         loss.backward() 
         optimizer.step()
-        print(loss.item())
-        print(acc)
+        #print(loss.item())
+        #print(acc)
         epoch_loss += loss.item() 
         epoch_acc += acc 
 
@@ -126,7 +126,7 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr = lr, weight_decay=0.001)
     
-    criterion = nn.TripletMarginLoss(margin=2, p=2.0)
+    criterion = nn.TripletMarginLoss(margin=1.5, p=2.0)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
