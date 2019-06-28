@@ -10,10 +10,7 @@ class WordLevel(nn.Module):
         super(WordLevel, self).__init__()
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
-        if torch.cuda.is_available():
-            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False).cuda()
-        else:
-            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
+        self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
         self.lstm = nn.LSTM(1024, word_hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
@@ -48,10 +45,7 @@ class ChoiceNet(nn.Module):
         super(ChoiceNet, self).__init__()
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
-        if torch.cuda.is_available():
-            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False).cuda()
-        else:
-            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False) 
+        self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
         self.lstm = nn.LSTM(1024, word_hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
@@ -127,12 +121,12 @@ class Attention(nn.Module):
         self.dim = word_hidden_size*2
         self.batch_size = batch_size
         self.linear_dm = nn.Linear(self.dim,self.dim)
-        self.linear_ms = nn.Linear(self.dim, 1) 
-        self.linear_rm = nn.Linear(self.dim,self.dim)
-        self.linear_qm = nn.Linear(self.dim,self.dim)
-        self.linear_rr = nn.Linear(self.dim,self.dim)
-        self.linear_rg = nn.Linear(self.dim,self.dim)
-        self.linear_qg = nn.Linear(self.dim,self.dim)
+        self.linear_ms = nn.Linear(self.dim, 1)
+        # self.linear_rm = nn.Linear(self.dim,self.dim)
+        # self.linear_qm = nn.Linear(self.dim,self.dim)
+        # self.linear_rr = nn.Linear(self.dim,self.dim)
+        # self.linear_rg = nn.Linear(self.dim,self.dim)
+        # self.linear_qg = nn.Linear(self.dim,self.dim)
     def forward(self, input_context, input_question): 
         context_output, _ = self.text(input_context)
         
@@ -143,26 +137,26 @@ class Attention(nn.Module):
         else:
             r = torch.zeros(context_output.size()[1], 1, self.dim)
 
-        for i in question_output: 
-            output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
-            output2 = self.linear_rm(r) # (batch, 1, dim)
-            output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
-            m = torch.tanh(output1 + output2 + output3) 
-            s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
-            r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_rr(r))
-        # print('r', r.size())
-        # print('u', u.size())
-        g = self.linear_rg(r).squeeze(1) + self.linear_qg(u) # g (batch, 1, 512)
         # for i in question_output: 
         #     output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
-        #     output2 = self.linear_dm(r) # (batch, 1, dim)
-        #     output3 = self.linear_dm(i.unsqueeze(1)) # (batch, 1, dim)
+        #     output2 = self.linear_rm(r) # (batch, 1, dim)
+        #     output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
         #     m = torch.tanh(output1 + output2 + output3) 
         #     s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
-        #     r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_dm(r))
+        #     r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_rr(r))
         # # print('r', r.size())
-        # # print('u', u.size())6
-        # g = self.linear_dm(r).squeeze(1) + self.linear_dm(u) # g (batch, 1, 512)
+        # # print('u', u.size())
+        # g = self.linear_rg(r).squeeze(1) + self.linear_qg(u) # g (batch, 1, 512)
+        for i in question_output: 
+            output1 = self.linear_dm(context_output.permute(1,0,2)) #(seq_leng, batch, dim) -> (batch, seq, dim)
+            output2 = self.linear_dm(r) # (batch, 1, dim)
+            output3 = self.linear_dm(i.unsqueeze(1)) # (batch, 1, dim)
+            m = torch.tanh(output1 + output2 + output3) 
+            s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
+            r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_dm(r))
+        # print('r', r.size())
+        # print('u', u.size())6
+        g = self.linear_dm(r).squeeze(1) + self.linear_dm(u) # g (batch, 1, 512)
 
         return g 
 
@@ -174,9 +168,7 @@ class Impatient_Reader_Model(nn.Module):
         self.text_net = SentLevel(sent_hidden_size, word_hidden_size)
         self.attention = Attention(word_hidden_size, sent_hidden_size, batch_size)
         self.choice = ChoiceNet(word_hidden_size)
-        self.fc3 = nn.Linear(word_hidden_size*8, 512)
-        self.dropout = nn.Dropout(p = 0.2)
-        self.fc4 = nn.Linear(512, 1)
+    
 
     def exponent_neg_manhattan_distance(self, x1, x2):
         return torch.sum(torch.abs(x1 - x2), dim=1)
@@ -193,12 +185,13 @@ class Impatient_Reader_Model(nn.Module):
         g = self.attention(input_context, input_question)
 
         output_choice_list = []
-        for i in input_choice: 
+        for i in input_choice:  
+            # similarity_scores = self.Infersent(hidden_output_question, hidden_output_choice)
+            # similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
+            # similarity_scores = self.fc4(similarity_scores)
             output_choice, hidden_output_choice = self.choice(i)
-            similarity_scores = self.Infersent(hidden_output_question, hidden_output_choice)
-            similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
-            similarity_scores = self.fc4(similarity_scores) 
-            #similarity_scores = self.cosine_dot_distance(g, hidden_output_choice)
+            #hidden_output_choice = self.fc2(hidden_output_choice)
+            similarity_scores = self.cosine_dot_distance(g, hidden_output_choice)
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             

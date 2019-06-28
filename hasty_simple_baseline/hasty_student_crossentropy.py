@@ -39,7 +39,7 @@ recipe_context_valid, recipe_images_valid, recipe_question_valid, recipe_choice_
 fname = get_tmpfile("/Users/LYB/Desktop/coursework/Msc-project/recipe_baseline/hasty_simple_baseline/my_doc2vec_model")
 model = gensim.models.doc2vec.Doc2Vec.load(fname) 
 question = []
-print()
+
 for i in recipe_question_valid:
     question.append(gensim.utils.simple_preprocess(' '.join(i)))
 for i in range(len(question)):
@@ -50,6 +50,7 @@ for i in range(len(recipe_choice_valid)):
 question = torch.FloatTensor(question)
 choice = torch.FloatTensor(recipe_choice_valid)
 answer = [] 
+
 def exponent_neg_manhattan_distance(x1, x2):
         return torch.sum(torch.abs(x1 - x2), dim=1)
 def cosine_dot_distance(x1, x2):
@@ -59,6 +60,7 @@ def Infersent(x1, x2):
 
 for i in range(len(question)):
     answer.append(torch.matmul(choice[i], question[0]).numpy())
+
 answer = torch.FloatTensor(answer) 
 answer_valid = torch.LongTensor(recipe_answer_valid)
 acc_val = accuracy(answer, answer_valid)

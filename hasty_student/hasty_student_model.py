@@ -10,7 +10,10 @@ class WordLevel(nn.Module):
         super(WordLevel, self).__init__()
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
-        self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
+        if torch.cuda.is_available():
+            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False).cuda()
+        else:
+            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False) 
         self.lstm = nn.LSTM(1024, hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
@@ -45,7 +48,10 @@ class ChoiceNet(nn.Module):
         super(ChoiceNet, self).__init__()
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
-        self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
+        if torch.cuda.is_available():
+            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False).cuda()
+        else:
+            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False) 
         self.lstm = nn.LSTM(1024, hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
@@ -78,7 +84,7 @@ class HierNet(nn.Module):
         self.fc2 = nn.Linear(512, 50, bias = True)
         self.fc3 = nn.Linear(word_hidden_size*8, 512)
         self.dropout = nn.Dropout(p = 0.2)
-        self.fc4 = nn.Linear(512, 1)
+        self.fc4 = nn.Linear(512, 1) 
 
     def exponent_neg_manhattan_distance(self, x1, x2):
         return torch.sum(torch.abs(x1 - x2), dim=1)
@@ -108,11 +114,11 @@ class HierNet(nn.Module):
             output_choice, hidden_output_choice = self.choice(i)
             #hidden_output_choice = self.fc2(hidden_output_choice)
     
-            # similarity_scores = self.Infersent(hidden_output_question, hidden_output_choice)
-            # similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
-            # similarity_scores = self.fc4(similarity_scores)
+            similarity_scores = self.Infersent(hidden_output_question, hidden_output_choice)
+            similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
+            similarity_scores = self.fc4(similarity_scores) 
     
-            similarity_scores = self.cosine_dot_distance(hidden_output_question, hidden_output_choice)
+            #similarity_scores = self.cosine_dot_distance(hidden_output_question, hidden_output_choice)
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             

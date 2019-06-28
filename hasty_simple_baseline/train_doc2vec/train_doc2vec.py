@@ -13,7 +13,7 @@ def load_cleaned_data(file = 'train_cleaned.json'):
     recipe_answer = recipe['answer']
     recipe_choice = recipe['choice']
     recipe_question = recipe['question']
-    recipe_images = recipe['images']
+    recipe_images = recipe['images'] 
     return recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer 
 recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = load_cleaned_data('train_cleaned.json')
 recipe_context_valid, recipe_images_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid = load_cleaned_data('val_cleaned.json')
@@ -42,7 +42,7 @@ for i in recipe_question_valid:
         new_val.append(j)
 for i in recipe_choice_valid:
     for j in i:
-        new_val.append(j)
+        new_val.append(j) 
 def read_corpus(data_list, tokens_only=False):
     for i, line in enumerate(data_list):
         if tokens_only:
@@ -50,11 +50,12 @@ def read_corpus(data_list, tokens_only=False):
         else:
             # For training data, add tags     
             yield gensim.models.doc2vec.TaggedDocument(gensim.utils.simple_preprocess(line), [i])
+
 train_corpus = list(read_corpus(new_train))
 test_corpus = list(read_corpus(new_val))
 model = gensim.models.doc2vec.Doc2Vec(vector_size=100, min_count=2, epochs=100)
 model.build_vocab(test_corpus)
-print(len(model.wv.vocab))
+print(len(model.wv.vocab)) 
 model.train(train_corpus, total_examples=model.corpus_count, epochs=model.epochs)
 fname = get_tmpfile("../my_doc2vec_model_val")
-model.save(fname)
+model.save(fname) 
