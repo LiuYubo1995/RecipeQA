@@ -2,7 +2,7 @@
 import numpy as np
 import json
 import re
-from nltk.stem import PorterStemmer
+# from nltk.stem import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize

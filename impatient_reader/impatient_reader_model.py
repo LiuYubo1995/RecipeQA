@@ -118,8 +118,6 @@ class Question_Net(nn.Module):
 class Attention(nn.Module):
     def __init__(self, word_hidden_size, sent_hidden_size, batch_size):
         super(Attention, self).__init__() 
-        self.text = Text_Net(word_hidden_size, sent_hidden_size)
-        self.question = Question_Net(word_hidden_size, sent_hidden_size)
         self.dim = word_hidden_size*2
         self.batch_size = batch_size
         self.linear_dm = nn.Linear(self.dim,self.dim)
@@ -129,10 +127,7 @@ class Attention(nn.Module):
         self.linear_rr = nn.Linear(self.dim,self.dim)
         self.linear_rg = nn.Linear(self.dim,self.dim)
         self.linear_qg = nn.Linear(self.dim,self.dim)
-    def forward(self, input_context, input_question): 
-        context_output, _ = self.text(input_context)
-        
-        question_output, u = self.question(input_question)
+    def forward(self, context_output, question_output, u): 
         
         if torch.cuda.is_available(): 
             r = torch.zeros(context_output.size()[1], 1, self.dim).cuda() 
@@ -157,7 +152,7 @@ class Attention(nn.Module):
         #     s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
         #     r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_dm(r))
         # # print('r', r.size())
-        # # print('u', u.size())6
+        # # print('u', u.size())
         # g = self.linear_dm(r).squeeze(1) + self.linear_dm(u) # g (batch, 1, 512)
 
         return g 
@@ -166,8 +161,8 @@ class Attention(nn.Module):
 class Impatient_Reader_Model(nn.Module):       
     def __init__(self, word_hidden_size, sent_hidden_size, batch_size):
         super(Impatient_Reader_Model, self).__init__()
-        self.step_net = WordLevel(word_hidden_size)
-        self.text_net = SentLevel(sent_hidden_size, word_hidden_size)
+        self.text = Text_Net(word_hidden_size, sent_hidden_size)
+        self.question = Question_Net(word_hidden_size, sent_hidden_size) 
         self.attention = Attention(word_hidden_size, sent_hidden_size, batch_size)
         self.choice = ChoiceNet(word_hidden_size)
         self.fc3 = nn.Linear(word_hidden_size*8, 512)
@@ -186,7 +181,11 @@ class Impatient_Reader_Model(nn.Module):
         input_question = transport_1_0_2(input_question)
         input_choice = transport_1_0_2(input_choice) 
         output_list = []
-        g = self.attention(input_context, input_question)
+
+        context_output, _ = self.text(input_context)
+        question_output, u = self.question(input_question)
+
+        g = self.attention(context_output, question_output, u)
 
         output_choice_list = []
         for i in input_choice: 

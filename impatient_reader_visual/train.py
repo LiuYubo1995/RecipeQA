@@ -26,13 +26,13 @@ def get_args():
     args = parser.parse_args() 
     return args 
 
-def train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size):
+def train_run(model, train_context, train_question, train_choice, train_answer, train_images, image_path, optimizer, criterion, batch_size):
     epoch_loss = 0
     epoch_acc = 0
     model.train()
-    for batch_context, batch_question, batch_choice, batch_answer in tqdm(zip(train_context, train_question, train_choice, train_answer)):          
+    for batch_context, batch_question, batch_choice, batch_answer, batch_images in tqdm(zip(train_context, train_question, train_choice, train_answer, train_images)):          
         optimizer.zero_grad() 
-        output = model(batch_context, batch_question, batch_choice)
+        output = model(batch_context, batch_question, batch_choice, batch_images, image_path) 
         output = torch.cat(output, 0).view(-1, len(batch_context))
         output = output.permute(1, 0)  
         loss = criterion(output, batch_answer)
@@ -45,13 +45,13 @@ def train_run(model, train_context, train_question, train_choice, train_answer, 
     return epoch_loss / len(train_context), epoch_acc / len(train_context) 
 
 
-def eval_run_batch(model, val_context, val_question, val_choice, val_answer, criterion, batch_size):
+def eval_run_batch(model, val_context, val_question, val_choice, val_answer, val_images, image_path, criterion, batch_size):
     epoch_loss = 0
     epoch_acc = 0
     model.eval()
     with torch.no_grad():
-        for batch_context, batch_question, batch_choice, batch_answer in tqdm(zip(val_context, val_question, val_choice, val_answer)):           
-            output = model(batch_context, batch_question, batch_choice)
+        for batch_context, batch_question, batch_choice, batch_answer, batch_images in tqdm(zip(val_context, val_question, val_choice, val_answer, val_images)):           
+            output = model(batch_context, batch_question, batch_choice, batch_images, image_path)
             output = torch.cat(output, 0).view(-1, len(batch_context))
             output = output.permute(1, 0)  
             loss = criterion(output, batch_answer)
@@ -94,20 +94,28 @@ def main(args):
 
         print(epoch)
 
-        train_context_new,train_question_new,train_choice_new,train_answer_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer)
-        val_context_new,val_question_new,val_choice_new,val_answer_new = shuffle_data(recipe_context_val,recipe_question_val,recipe_choice_val,recipe_answer_val)
-        # recipe_context_new = recipe_context_new[0:15]
-        # recipe_question_new = recipe_question_new[0:15]
-        # recipe_choice_new = recipe_choice_new[0:15]
-        # recipe_answer_new = recipe_answer_new[0:15]
-        train_context, train_question, train_choice, train_answer = split_batch(batch_size, train_context_new,train_question_new,train_choice_new,train_answer_new)
-        val_context, val_question, val_choice, val_answer = split_batch(batch_size, val_context_new,val_question_new,val_choice_new,val_answer_new)
+        train_context_new,train_question_new,train_choice_new,train_answer_new, train_images_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer, recipe_images)
+        val_context_new,val_question_new,val_choice_new,val_answer_new, val_images_new = shuffle_data(recipe_context_val,recipe_question_val,recipe_choice_val,recipe_answer_val, recipe_images_val)
+        
+        # train_context_new = train_context_new[0:15]
+        # train_question_new = train_question_new[0:15]
+        # train_choice_new = train_choice_new[0:15]
+        # train_answer_new = train_answer_new[0:15]
+        # train_images_new = train_images_new[0:15]
+        train_context, train_question, train_choice, train_answer, train_images = split_batch(batch_size, train_context_new,train_question_new,train_choice_new,train_answer_new, train_images_new)
+        val_context, val_question, val_choice, val_answer, val_images = split_batch(batch_size, val_context_new,val_question_new,val_choice_new,val_answer_new, val_images_new)
 
         print(len(train_context)) 
-        print(len(val_context))
+        print(len(val_context)) 
 
-        train_loss, train_acc = train_run(model, train_context, train_question, train_choice, train_answer, optimizer, criterion, batch_size)
-        valid_loss, valid_acc = eval_run_batch(model, val_context, val_question, val_choice, val_answer, criterion, batch_size)
+        train_feature_path = open('training_features.json', 'r', encoding='utf8').read()
+        train_images_feature = json.loads(train_feature_path)
+
+        val_feature_path = open('validation_features.json', 'r', encoding='utf8').read()
+        val_images_feature = json.loads(val_feature_path)
+
+        train_loss, train_acc = train_run(model, train_context, train_question, train_choice, train_answer, train_images, train_images_feature, optimizer, criterion, batch_size)
+        valid_loss, valid_acc = eval_run_batch(model, val_context, val_question, val_choice, val_answer, val_images, val_images_feature, criterion, batch_size)
         #valid_loss, valid_acc = eval_run(model, recipe_context_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid, criterion)
         log_data(args.log_path, train_loss, train_acc, valid_loss, valid_acc)
 
