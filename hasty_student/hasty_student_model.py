@@ -10,10 +10,8 @@ class WordLevel(nn.Module):
         super(WordLevel, self).__init__()
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
-        if torch.cuda.is_available():
-            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False).cuda()
-        else:
-            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False) 
+        
+        self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
         self.lstm = nn.LSTM(1024, hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
@@ -48,10 +46,9 @@ class ChoiceNet(nn.Module):
         super(ChoiceNet, self).__init__()
         options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
-        if torch.cuda.is_available():
-            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False).cuda()
-        else:
-            self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False) 
+        
+        
+        self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False) 
         self.lstm = nn.LSTM(1024, hidden_size, num_layers=1, 
                         bidirectional=True, dropout=0.2)
 
