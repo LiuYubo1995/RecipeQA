@@ -133,16 +133,19 @@ class Attention(nn.Module):
             r = torch.zeros(context_output.size()[1], 1, self.dim).cuda() 
         else:
             r = torch.zeros(context_output.size()[1], 1, self.dim)
+        
+        print(context_output.size())
+        print(image_output.size()) 
 
         context_output = self.fc1(context_output.permute(1,0,2)) + self.fc2(image_output.permute(1,0,2)) 
-
+        print(context_output.size())
         for i in question_output: 
             output1 = self.linear_dm(context_output) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
             output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
             m = torch.tanh(output1 + output2 + output3) 
             s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
-            r = torch.matmul(s, context_output.permute(1, 0, 2)) + torch.tanh(self.linear_rr(r))
+            r = torch.matmul(s, context_output) + torch.tanh(self.linear_rr(r))
         g = self.linear_rg(r).squeeze(1) + self.linear_qg(u) # g (batch, 1, 512)
 
         return g 
@@ -184,7 +187,7 @@ class Impatient_Reader_Model(nn.Module):
         output_list = []
         g = self.attention(context_output, question_output, final_question_hidden, image_output) 
 
-        output_choice_list = []
+        output_choice_list = [] 
         for i in input_choice:  
             output_choice, hidden_output_choice = self.choice(i)
             similarity_scores = self.Infersent(g, hidden_output_choice)

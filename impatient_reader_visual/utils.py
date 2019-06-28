@@ -116,7 +116,7 @@ def extract_image_features(batch_images, feature):
             temp2.append(np.sum(temp, axis = 0))
         batch.append(temp2)
     if torch.cuda.is_available():
-        batch = torch.FloatTensor(batch).cuda()
+        batch = torch.FloatTensor(batch).squeeze(2).cuda()
     else:
-        batch = torch.FloatTensor(batch) 
+        batch = torch.FloatTensor(batch).squeeze(2)  
     return batch

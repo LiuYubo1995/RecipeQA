@@ -1,5 +1,5 @@
 
-from impatient_reader_model import Impatient_Reader_Model
+from impatient_reader_model_visual import Impatient_Reader_Model
 from utils import shuffle_data, save_model, log_data, load_cleaned_data, accuracy, split_batch
 import torch.nn.functional as F
 import torch.nn as nn
