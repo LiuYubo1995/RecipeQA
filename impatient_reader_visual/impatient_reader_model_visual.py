@@ -134,11 +134,9 @@ class Attention(nn.Module):
         else:
             r = torch.zeros(context_output.size()[1], 1, self.dim)
         
-        print(context_output.size())
-        print(image_output.size()) 
 
         context_output = self.fc1(context_output.permute(1,0,2)) + self.fc2(image_output.permute(1,0,2)) 
-        print(context_output.size())
+
         for i in question_output: 
             output1 = self.linear_dm(context_output) #(seq_leng, batch, dim) -> (batch, seq, dim)
             output2 = self.linear_rm(r) # (batch, 1, dim)
