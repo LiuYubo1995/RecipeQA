@@ -126,16 +126,16 @@ class Attention(nn.Module):
         self.linear_qm = nn.Linear(self.dim,self.dim)
         self.linear_rr = nn.Linear(self.dim,self.dim)
         self.linear_rg = nn.Linear(self.dim,self.dim)
-        self.linear_qg = nn.Linear(self.dim,self.dim)
-    def forward(self, context_output, question_output, u, image_output): 
+        self.linear_qg = nn.Linear(self.dim,self.dim) 
+    def forward(self, context_output, question_output, u): 
         
-        if torch.cuda.is_available(): 
+        if torch.cuda.is_available():  
             r = torch.zeros(context_output.size()[1], 1, self.dim).cuda() 
         else:
             r = torch.zeros(context_output.size()[1], 1, self.dim)
         
 
-        context_output = self.fc1(context_output.permute(1,0,2)) + self.fc2(image_output.permute(1,0,2)) 
+        context_output = context_output.permute(1,0,2)
 
         for i in question_output: 
             output1 = self.linear_dm(context_output) #(seq_leng, batch, dim) -> (batch, seq, dim)
@@ -160,6 +160,7 @@ class Impatient_Reader_Model(nn.Module):
         self.dropout = nn.Dropout(p = 0.2)
         self.fc4 = nn.Linear(word_hidden_size*2, 1) 
         self.images = nn.LSTM(1000, word_hidden_size, bidirectional=True) 
+        self.attention_image = Attention(word_hidden_size, sent_hidden_size, batch_size)
 
     
 
@@ -182,16 +183,19 @@ class Impatient_Reader_Model(nn.Module):
         question_output, final_question_hidden = self.question(input_question)
         image_output, _  = self.images(input_images) 
 
-        output_list = []
-        g = self.attention(context_output, question_output, final_question_hidden, image_output) 
+        g_image = self.attention_image(image_output, question_output, final_question_hidden) 
+        g = self.attention(context_output, question_output, final_question_hidden)  
 
         output_choice_list = [] 
+        output_choice_list_image = []
         for i in input_choice:  
             output_choice, hidden_output_choice = self.choice(i)
             similarity_scores = self.Infersent(g, hidden_output_choice)
             similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
-            similarity_scores = self.fc4(similarity_scores)
-            #similarity_scores = self.cosine_dot_distance(g, hidden_output_choice)
+            similarity_scores = self.fc4(similarity_scores) 
+
+            similarity_scores_images = self.cosine_dot_distance(g, hidden_output_choice)
+            similarity_scores = 0.1 * similarity_scores_images + 0.9 * similarity_scores
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
             output_choice_list.append(similarity_scores)
             

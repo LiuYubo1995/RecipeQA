@@ -180,7 +180,6 @@ class Impatient_Reader_Model(nn.Module):
         input_context = transport_1_0_2(input_context)
         input_question = transport_1_0_2(input_question)
         input_choice = transport_1_0_2(input_choice) 
-        output_list = []
 
         context_output, _ = self.text(input_context)
         question_output, u = self.question(input_question)
