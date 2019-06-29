@@ -135,7 +135,7 @@ class Attention(nn.Module):
             r = torch.zeros(context_output.size()[1], 1, self.dim)
         
 
-        context_output = self.fc1(torch.cat((context_output.permute(1,0,2), image_output.premute(1,0,2)), dim=2))
+        context_output = self.fc1(torch.cat((context_output.permute(1,0,2), image_output.permute(1,0,2)), dim=2))
         
 
         for i in question_output: 
