@@ -135,8 +135,8 @@ class Attention(nn.Module):
             r = torch.zeros(context_output.size()[1], 1, self.dim)
         
 
-        context_output = self.fc1(torch.cat((context_output.permute(1,0,2), image_output.permute(1,0,2)), dim=2))
-        
+        #context_output = self.fc1(torch.cat((context_output.permute(1,0,2), image_output.permute(1,0,2)), dim=2))
+        context_output = context_output.permute(1,0,2)
 
         for i in question_output: 
             output1 = self.linear_dm(context_output) #(seq_leng, batch, dim) -> (batch, seq, dim)
@@ -157,9 +157,9 @@ class Impatient_Reader_Model(nn.Module):
         self.question = Question_Net(word_hidden_size, sent_hidden_size) 
         self.attention = Attention(word_hidden_size, sent_hidden_size, batch_size)
         self.choice = ChoiceNet(word_hidden_size)
-        self.fc3 = nn.Linear(word_hidden_size*8, word_hidden_size*2)
+        self.fc3 = nn.Linear(word_hidden_size*8, 512)
         self.dropout = nn.Dropout(p = 0.2)
-        self.fc4 = nn.Linear(word_hidden_size*2, 1) 
+        self.fc4 = nn.Linear(512, 1) 
         self.images = nn.LSTM(1000, word_hidden_size, bidirectional=True) 
 
     def exponent_neg_manhattan_distance(self, x1, x2):
