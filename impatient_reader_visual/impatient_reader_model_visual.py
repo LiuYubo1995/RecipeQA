@@ -135,8 +135,8 @@ class Attention(nn.Module):
             r = torch.zeros(context_output.size()[1], 1, self.dim)
         
 
-        context_output = self.fc1(torch.cat((context_output.permute(1,0,2), image_output.permute(1,0,2)), dim=2))
-        #context_output = context_output.permute(1,0,2) 
+        #context_output = self.fc1(torch.cat((context_output.permute(1,0,2), image_output.permute(1,0,2)), dim=2))
+        context_output = context_output.permute(1,0,2) 
 
         for i in question_output: 
             output1 = self.linear_dm(context_output) #(seq_leng, batch, dim) -> (batch, seq, dim)
@@ -156,10 +156,13 @@ class Impatient_Reader_Model(nn.Module):
         self.text = Text_Net(word_hidden_size, sent_hidden_size)
         self.question = Question_Net(word_hidden_size, sent_hidden_size) 
         self.attention = Attention(word_hidden_size, sent_hidden_size, batch_size)
+        self.attention_image = Attention(word_hidden_size, sent_hidden_size, batch_size)
         self.choice = ChoiceNet(word_hidden_size)
         self.fc3 = nn.Linear(word_hidden_size*8, 512)
         self.dropout = nn.Dropout(p = 0.2)
         self.fc4 = nn.Linear(512, 1) 
+        self.fc5 = nn.Linear(word_hidden_size*8, 512)
+        self.fc6 = nn.Linear(512, 1)
         self.images = nn.LSTM(1000, word_hidden_size, bidirectional=True) 
 
     def exponent_neg_manhattan_distance(self, x1, x2):
@@ -182,15 +185,21 @@ class Impatient_Reader_Model(nn.Module):
         image_output, _  = self.images(input_images) 
 
         g = self.attention(context_output, question_output, final_question_hidden, image_output)  
+        g2 = self.attention_image(image_output, question_output, final_question_hidden, context_output)
 
         output_choice_list = [] 
-        for i in input_choice:   
+        for i in input_choice:      
             output_choice, hidden_output_choice = self.choice(i)
             similarity_scores = self.Infersent(g, hidden_output_choice)
             similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
-            similarity_scores = self.fc4(similarity_scores) 
-            #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
-            output_choice_list.append(similarity_scores)
+            similarity_scores = self.fc4(similarity_scores)
+           
+            similarity_scores_image = self.Infersent(g, hidden_output_choice)
+            similarity_scores_image = self.dropout(torch.tanh(self.fc5(similarity_scores_image)))
+            similarity_scores_image = self.fc6(similarity_scores_image)  
+            #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice) 
+            similarity_scores = similarity_scores * 0.9 + similarity_scores_image * 0.1
+            output_choice_list.append(similarity_scores) 
             
         return output_choice_list 
 

@@ -119,10 +119,11 @@ def main(args):
         #valid_loss, valid_acc = eval_run(model, recipe_context_valid, recipe_question_valid, recipe_choice_valid, recipe_answer_valid, criterion)
         log_data(args.log_path, train_loss, train_acc, valid_loss, valid_acc)
 
-        print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}%')
+        #print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}%')
         if valid_acc > max_val_acc:
             max_val_acc = valid_acc
             save_model(model,epoch,valid_acc,args.saved_path)
+        
         
 
 if __name__ == "__main__":
