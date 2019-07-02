@@ -203,7 +203,7 @@ class Impatient_Reader_Model(nn.Module):
 
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice) 
             print(self.weight)
-            self.weight = self.fc8(self.weight)
+            self.weight = torch.sigmoid(self.fc8(self.weight))
             print(self.weight)
             similarity_scores = similarity_scores * self.weight + similarity_scores_image * (1-self.weight)
             output_choice_list.append(similarity_scores) 
