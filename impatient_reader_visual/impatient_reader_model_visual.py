@@ -165,8 +165,8 @@ class Impatient_Reader_Model(nn.Module):
         self.fc5 = nn.Linear(word_hidden_size*8, 512)
         self.fc6 = nn.Linear(512, 1)
         self.images = nn.LSTM(1000, word_hidden_size, bidirectional=True) 
-        self.weight = torch.tensor(0.9, requires_grad=True).cuda()
-        self.fc8 = nn.Linear(1,1)
+        # self.weight = torch.tensor(0.9, requires_grad=True).cuda()
+        # self.fc8 = nn.Linear(1,1)
 
     def exponent_neg_manhattan_distance(self, x1, x2):
         return torch.sum(torch.abs(x1 - x2), dim=1)
@@ -202,10 +202,10 @@ class Impatient_Reader_Model(nn.Module):
             similarity_scores_image = self.fc6(similarity_scores_image)  
 
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice) 
-            print(self.weight)
-            self.weight = torch.sigmoid(self.fc8(self.weight))
-            print(self.weight)
-            similarity_scores = similarity_scores * self.weight + similarity_scores_image * (1-self.weight)
+            # print(self.weight)
+            # self.weight = torch.sigmoid(self.fc8(self.weight))
+            # print(self.weight)
+            similarity_scores = similarity_scores * 0.9 + similarity_scores_image * 0.1
             output_choice_list.append(similarity_scores) 
             
         return output_choice_list 
