@@ -165,7 +165,7 @@ class Impatient_Reader_Model(nn.Module):
         self.fc5 = nn.Linear(word_hidden_size*8, 512)
         self.fc6 = nn.Linear(512, 1)
         self.images = nn.LSTM(1000, word_hidden_size, bidirectional=True) 
-        self.weight = torch.rand(1, requires_grad=True).cuda()
+        self.weight = torch.tensor(0.9, requires_grad=True).cuda()
         self.fc8 = nn.Linear(1,1)
 
     def exponent_neg_manhattan_distance(self, x1, x2):
