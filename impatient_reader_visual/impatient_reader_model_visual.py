@@ -199,13 +199,13 @@ class Impatient_Reader_Model(nn.Module):
            
             similarity_scores_image = self.Infersent(g2, hidden_output_choice)
             similarity_scores_image = self.dropout(torch.tanh(self.fc5(similarity_scores_image)))
-            similarity_scores_image = self.fc6(similarity_scores_image)  
+            similarity_scores_image = self.fc6(similarity_scores_image) 
 
             #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice) 
             # print(self.weight)
             # self.weight = torch.sigmoid(self.fc8(self.weight))
             # print(self.weight)
-            similarity_scores = similarity_scores * 0.9 + similarity_scores_image * 0.1
+            similarity_scores = similarity_scores * 0.95 + similarity_scores_image * 0.05 
             output_choice_list.append(similarity_scores) 
             
         return output_choice_list 
