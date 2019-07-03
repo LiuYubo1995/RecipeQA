@@ -132,13 +132,13 @@ class alternating_co_attention(nn.Module):
         self.dim = vector_dim
     def forward(self, question, context):
         if torch.cuda.is_available():  
-            g = torch.zeros(question.shape[1], self.dim).cuda()
+            g = torch.zeros(question.size(1), self.dim).cuda()
         else: 
-            g = torch.zeros(question.shape[1], self.dim)  
+            g = torch.zeros(question.size(1), self.dim)  
         temp_vector = self.question_g_attention(question, g)
         c_vector = self.context_q_attention(context, temp_vector)
         q_vector = self.question_c_attention(question, c_vector)
-        return q_vector, c_vector
+        return q_vector, c_vector 
 
 
 class MultiAttention(nn.Module):
@@ -149,10 +149,6 @@ class MultiAttention(nn.Module):
         self.fc1 = nn.Linear(self.dim, self.dim) # W_u 
         self.fc2 = nn.Linear(self.dim, self.dim) # W_a_k
         self.fc3 = nn.Linear(self.dim, self.dim) # W_q 
-        if torch.cuda.is_available():  
-            self.u = torch.zeros(self.dim, requires_grad = True).cuda()
-        else:
-            self.u = torch.zeros(self.dim, requires_grad = True)
         self.attention = alternating_co_attention(batch_size, self.dim, self.dim, self.dim) 
         self.attention1 = linear_attention(self.dim, self.dim, self.dim)
         self.linear = nn.Linear(self.dim*2, self.dim)
@@ -162,11 +158,17 @@ class MultiAttention(nn.Module):
         answer_hidden (batch_size, dim)
         question_output (4, batch_size, dim)
         '''
+        if torch.cuda.is_available():  
+            u = torch.zeros(question_output.size(1), self.dim, requires_grad = True).cuda()
+        else:
+            u = torch.zeros(question_output.size(1), self.dim, requires_grad = True)
         for i in range(num_attention):
-            q_new = torch.tanh(self.fc1(self.u) + self.fc2(answer_hidden) + self.fc3(question_output))
+            print(self.fc1(u).size())
+            print(self.fc2(answer_hidden).size())
+            print(self.fc3(question_output).size())
+            q_new = torch.tanh(self.fc1(u) + self.fc2(answer_hidden) + self.fc3(question_output))
             q_attention_vector, context_attention_vector = self.attention(question_output, context_output)
-            u = torch.tanh(self.linear(torch.cat((q_attention_vector, context_attention_vector), dim=1)))
-            self.u = u 
+            u = torch.tanh(self.linear(torch.cat((q_attention_vector, context_attention_vector), dim=1))) 
         return u 
 
 
