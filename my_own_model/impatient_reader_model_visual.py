@@ -111,69 +111,81 @@ class Question_Net(nn.Module):
         return output, hidden_output
 
 
+class linear_attention(nn.Module):
+    def __init__(self, question_dim, vector_dim, attention_dim):
+        super(linear_attention, self).__init__()
+        self.fc1 = nn.Linear(question_dim, attention_dim)
+        self.fc2 = nn.Linear(vector_dim, attention_dim)
+        self.fc3 = nn.Linear(attention_dim, 1)
+    def forward(self, question, vector): 
+        H = torch.tanh(self.fc1(question)+self.fc2(vector))
+        attention_score = F.softmax(self.fc3(H), dim=0)
+        x = torch.matmul(attention_score.permute(1,2,0), question.permute(1,0,2))
+        return x.squeeze(1)
+
+class alternating_co_attention(nn.Module):
+    def __init__(self, batch_size, question_dim, vector_dim, attention_dim):
+        '''
+        input 
+        question(time_step, batch_size, dim)
+        context(time_step, batch_size, dim)
+        '''
+        super(alternating_co_attention, self).__init__()
+        if torch.cuda.is_available():  
+            self.g = torch.zeros(batch_size, vector_dim).cuda()
+        else:
+            self.g = torch.zeros(batch_size, vector_dim)
+        self.question_g_attention = linear_attention(question_dim, vector_dim, attention_dim)
+        self.context_q_attention = linear_attention(question_dim, vector_dim, attention_dim)
+        self.question_c_attention = linear_attention(question_dim, vector_dim, attention_dim)
+    def forward(self, question, context):
+        temp_vector = self.question_g_attention(question, self.g)
+        c_vector = self.context_q_attention(context, temp_vector)
+        q_vector = self.question_c_attention(question, c_vector)
+        return q_vector, c_vector
 
 
-class Attention(nn.Module):
+class MultiAttention(nn.Module):
     def __init__(self, word_hidden_size, sent_hidden_size, batch_size):
-        super(Attention, self).__init__() 
+        super(MultiAttention, self).__init__() 
         self.dim = word_hidden_size*2
         self.batch_size = batch_size
-        self.fc1 = nn.Linear(self.dim, self.dim)
-        self.fc2 = nn.Linear(self.dim, self.dim)
-        self.linear_dm = nn.Linear(self.dim,self.dim)
-        self.linear_ms = nn.Linear(self.dim, 1)
-        self.linear_rm = nn.Linear(self.dim,self.dim)
-        self.linear_qm = nn.Linear(self.dim,self.dim)
-        self.linear_rr = nn.Linear(self.dim,self.dim)
-        self.linear_rg = nn.Linear(self.dim,self.dim)
-        self.linear_qg = nn.Linear(self.dim,self.dim)
-    def forward(self, context_output, context_hidden_state, question_output, question_hidden_state, image_output, image_hidden_state): 
-        
-        if torch.cuda.is_available(): 
-            r = torch.zeros(context_output.size()[1], 1, self.dim).cuda() 
+        self.fc1 = nn.Linear(self.dim, self.dim) # W_u 
+        self.fc2 = nn.Linear(self.dim, self.dim) # W_a_k
+        self.fc3 = nn.Linear(self.dim, self.dim) # W_q 
+        if torch.cuda.is_available():  
+            self.u = torch.zeros(self.dim, requires_grad = True).cuda()
         else:
-            r = torch.zeros(context_output.size()[1], 1, self.dim)
-        print(context_output.size())
-        print(context_hidden_state.size())
-        print(question_output.size())
-        print(question_hidden_state.size())
-        print(image_output.size())
-        print(image_hidden_state.size())
-
-        
-
-        context_output = self.fc1(context_output.permute(1,0,2)) + self.fc2(image_output.permute(1,0,2)) 
-
-        for i in question_output: 
-            output1 = self.linear_dm(context_output) #(seq_leng, batch, dim) -> (batch, seq, dim)
-            output2 = self.linear_rm(r) # (batch, 1, dim)
-            output3 = self.linear_qm(i.unsqueeze(1)) # (batch, 1, dim)
-            m = torch.tanh(output1 + output2 + output3) 
-            s = F.softmax(self.linear_ms(m), dim=1).permute(0,2,1)
-            r = torch.matmul(s, context_output) + torch.tanh(self.linear_rr(r))
-        g = self.linear_rg(r).squeeze(1) + self.linear_qg(question_hidden_state) # g (batch, 1, 512)
-
-        return g 
+            self.u = torch.zeros(self.dim, requires_grad = True)
+        self.attention = alternating_co_attention(batch_size, self.dim, self.dim, self.dim) 
+        self.attention1 = linear_attention(self.dim, self.dim, self.dim)
+        self.linear = nn.Linear(self.dim*2, self.dim)
+    def forward(self, answer_hidden, question_output, context_output, num_attention=2):
+        '''
+        input
+        answer_hidden (batch_size, dim)
+        question_output (4, batch_size, dim)
+        '''
+        for i in range(num_attention):
+            q_new = torch.tanh(self.fc1(self.u) + self.fc2(answer_hidden) + self.fc3(question_output))
+            q_attention_vector, context_attention_vector = self.attention(question_output, context_output)
+            u = torch.tanh(self.linear(torch.cat((q_attention_vector, context_attention_vector), dim=1)))
+            self.u = u 
+        return u 
 
 
 class Impatient_Reader_Model(nn.Module):       
-    def __init__(self, word_hidden_size, sent_hidden_size, batch_size):
+    def __init__(self, word_hidden_size, sent_hidden_size, batch_size, num_attention):
         super(Impatient_Reader_Model, self).__init__()
         self.text = Text_Net(word_hidden_size, sent_hidden_size)
         self.question = Question_Net(word_hidden_size, sent_hidden_size) 
-        self.attention = Attention(word_hidden_size, sent_hidden_size, batch_size)
+        self.attention = MultiAttention(word_hidden_size, sent_hidden_size, batch_size)
+        self.dim  = 2*word_hidden_size
         self.choice = ChoiceNet(word_hidden_size)
-        self.fc3 = nn.Linear(word_hidden_size*8, word_hidden_size*2)
-        self.dropout = nn.Dropout(p = 0.2)
-        self.fc4 = nn.Linear(word_hidden_size*2, 1) 
-        self.images = nn.LSTM(1000, word_hidden_size, bidirectional=True) 
-
-    
-
-    def exponent_neg_manhattan_distance(self, x1, x2):
-        return torch.sum(torch.abs(x1 - x2), dim=1)
-    def cosine_dot_distance(self, x1, x2):
-        return torch.sum(torch.mul(x1, x2), dim=1)
+        #self.images = nn.LSTM(1000, word_hidden_size, bidirectional=True) 
+        self.num_attention = num_attention
+        self.q = nn.Linear(self.dim, self.dim)
+        self.a = nn.Linear(self.dim, self.dim)
     def Infersent(self, x1, x2):
         return torch.cat((x1, x2, torch.abs(x1 - x2), x1 * x2), 1)
 
@@ -183,27 +195,24 @@ class Impatient_Reader_Model(nn.Module):
         input_choice = transport_1_0_2(input_choice) 
         input_images = transport_1_0_2_image(input_images) 
 
-        input_images = extract_image_features(input_images, image_path)
+        #input_images = extract_image_features(input_images, image_path)
 
-        context_output, context_hidden_state = self.text(input_context)
-        question_output, question_hidden_state = self.question(input_question)
-        image_output, (image_hidden_state, _)  = self.images(input_images) 
-        image_hidden_state = torch.cat((image_hidden_state[-2,:,:], image_hidden_state[-1,:,:]), dim=1)
-
-        output_list = []
-        g = self.attention(context_output, context_hidden_state, question_output, question_hidden_state, image_output, image_hidden_state) 
-
+        context_output, _ = self.text(input_context)
+        question_output, question_final_hidden = self.question(input_question)
+        #image_output, _  = self.images(input_images) 
         output_choice_list = [] 
-        for i in input_choice:  
+
+        for i in input_choice:   
             output_choice, hidden_output_choice = self.choice(i)
-            similarity_scores = self.Infersent(g, hidden_output_choice)
-            similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
-            similarity_scores = self.fc4(similarity_scores)
-            #similarity_scores = self.cosine_dot_distance(g, hidden_output_choice)
-            #similarity_scores = self.exponent_neg_manhattan_distance(hidden_output_question,hidden_output_choice)
-            output_choice_list.append(similarity_scores)
+            u = self.attention(hidden_output_choice, question_output, context_output, self.num_attention)
+            q_u = torch.tanh(self.q(question_final_hidden)) + u
+            similarity_scores = torch.sum(torch.mul(q_u, torch.tanh(self.a(hidden_output_choice))), dim=1)
+            # similarity_scores = self.Infersent(g, hidden_output_choice)
+            # similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores)))
+            # similarity_scores = self.fc4(similarity_scores)
+            output_choice_list.append(similarity_scores) 
             
-        return output_choice_list
+        return output_choice_list 
 
 
 

@@ -120,3 +120,4 @@ def extract_image_features(batch_images, feature):
     else:
         batch = torch.FloatTensor(batch).squeeze(2)  
     return batch
+        

@@ -1,5 +1,5 @@
 
-from impatient_reader_model_multiattention import Impatient_Reader_Model
+from impatient_reader_model_visual import Impatient_Reader_Model
 from utils import shuffle_data, save_model, log_data, load_cleaned_data, accuracy, split_batch
 import torch.nn.functional as F
 import torch.nn as nn
@@ -23,6 +23,7 @@ def get_args():
     parser.add_argument("--log_path", type=str, default="result/log_data.txt")
     parser.add_argument("--saved_path", type=str, default="trained_models")
     parser.add_argument("--load_model", type=str, default=None)
+    parser.add_argument("--num_attention", type=str, default=2)
     args = parser.parse_args() 
     return args 
 
@@ -71,12 +72,12 @@ def main(args):
     num_epochs = args.num_epochs
     word_hidden_size = args.word_hidden_size
     sent_hidden_size = args.sent_hidden_size
-
+    num_attention = args.num_attention
 
     recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = load_cleaned_data('train_cleaned.json')
     recipe_context_val, recipe_images_val, recipe_question_val, recipe_choice_val, recipe_answer_val = load_cleaned_data('val_cleaned.json')
 
-    model = Impatient_Reader_Model(word_hidden_size, sent_hidden_size, batch_size)
+    model = Impatient_Reader_Model(word_hidden_size, sent_hidden_size, batch_size, num_attention) 
     if args.load_model: 
         model.load_state_dict(torch.load(args.load_model))
         model.eval()
@@ -120,9 +121,10 @@ def main(args):
         log_data(args.log_path, train_loss, train_acc, valid_loss, valid_acc)
 
         print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}%')
-        if valid_acc > max_val_acc:
-            max_val_acc = valid_acc
-            save_model(model,epoch,valid_acc,args.saved_path)
+        # if valid_acc > max_val_acc:
+        #     max_val_acc = valid_acc
+        #     save_model(model,epoch,valid_acc,args.saved_path)
+        
         
 
 if __name__ == "__main__":
