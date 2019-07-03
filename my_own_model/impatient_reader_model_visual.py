@@ -162,10 +162,8 @@ class MultiAttention(nn.Module):
             u = torch.zeros(question_output.size(1), self.dim, requires_grad = True).cuda()
         else:
             u = torch.zeros(question_output.size(1), self.dim, requires_grad = True)
+            
         for i in range(num_attention):
-            print(self.fc1(u).size())
-            print(self.fc2(answer_hidden).size())
-            print(self.fc3(question_output).size())
             q_new = torch.tanh(self.fc1(u) + self.fc2(answer_hidden) + self.fc3(question_output))
             q_attention_vector, context_attention_vector = self.attention(question_output, context_output)
             u = torch.tanh(self.linear(torch.cat((q_attention_vector, context_attention_vector), dim=1))) 
