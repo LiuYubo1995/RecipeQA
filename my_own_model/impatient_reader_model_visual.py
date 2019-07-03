@@ -125,20 +125,15 @@ class linear_attention(nn.Module):
 
 class alternating_co_attention(nn.Module):
     def __init__(self, batch_size, question_dim, vector_dim, attention_dim):
-        '''
-        input 
-        question(time_step, batch_size, dim)
-        context(time_step, batch_size, dim)
-        '''
         super(alternating_co_attention, self).__init__()
-        if torch.cuda.is_available():  
-            self.g = torch.zeros(batch_size, vector_dim).cuda()
-        else:
-            self.g = torch.zeros(batch_size, vector_dim)
         self.question_g_attention = linear_attention(question_dim, vector_dim, attention_dim)
         self.context_q_attention = linear_attention(question_dim, vector_dim, attention_dim)
         self.question_c_attention = linear_attention(question_dim, vector_dim, attention_dim)
     def forward(self, question, context):
+        if torch.cuda.is_available():  
+            g = torch.zeros(question.shape[1], vector_dim).cuda()
+        else: 
+            g = torch.zeros(question.shape[1], vector_dim)  
         temp_vector = self.question_g_attention(question, self.g)
         c_vector = self.context_q_attention(context, temp_vector)
         q_vector = self.question_c_attention(question, c_vector)
