@@ -14,13 +14,6 @@ import argparse
 
 
 def get_args():
-    def str2bool(v):
-        if v.lower() in ('yes', 'true', 't', 'y', '1'):
-            return True
-        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-            return False
-        else:
-            raise argparse.ArgumentTypeError('Unsupported value encountered.')
     parser = argparse.ArgumentParser("Hasty_student_recipeQA")
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--num_epochs", type=int, default=10)
@@ -31,8 +24,8 @@ def get_args():
     parser.add_argument("--saved_path", type=str, default="trained_models")
     parser.add_argument("--load_model", type=str, default=None)
     parser.add_argument("--num_attention", type=int, default=2)
-    parser.add_argument("--use_lexical", type = str2bool, default = False) 
-    parser.add_argument("--use_image", type = str2bool, default = False)   
+    parser.add_argument("--use_lexical", type=str, default=True) 
+    parser.add_argument("--use_image", type=str, default=True)  
     args = parser.parse_args() 
     return args 
 
@@ -82,8 +75,6 @@ def main(args):
     num_attention = args.num_attention
     use_lexical = args.use_lexical
     use_image = args.use_image
-    print('use_lexical', use_lexical)
-    print('use_image', use_image)
 
     recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = load_cleaned_data('train_cleaned.json')
     recipe_context_val, recipe_images_val, recipe_question_val, recipe_choice_val, recipe_answer_val = load_cleaned_data('val_cleaned.json')
@@ -109,16 +100,16 @@ def main(args):
         train_context_new,train_question_new,train_choice_new,train_answer_new, train_images_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer, recipe_images)
         val_context_new,val_question_new,val_choice_new,val_answer_new, val_images_new = shuffle_data(recipe_context_val,recipe_question_val,recipe_choice_val,recipe_answer_val, recipe_images_val)
         
-        train_context_new = train_context_new[0:5]
-        train_question_new = train_question_new[0:5]
-        train_choice_new = train_choice_new[0:5]
-        train_answer_new = train_answer_new[0:5]
-        train_images_new = train_images_new[0:5]
-        val_context_new = val_context_new[0:5]
-        val_question_new = val_question_new[0:5]
-        val_choice_new = val_choice_new[0:5]
-        val_answer_new = val_answer_new[0:5]
-        val_images_new = val_images_new[0:5] 
+        # train_context_new = train_context_new[0:5]
+        # train_question_new = train_question_new[0:5]
+        # train_choice_new = train_choice_new[0:5]
+        # train_answer_new = train_answer_new[0:5]
+        # train_images_new = train_images_new[0:5]
+        # val_context_new = val_context_new[0:5]
+        # val_question_new = val_question_new[0:5]
+        # val_choice_new = val_choice_new[0:5]
+        # val_answer_new = val_answer_new[0:5]
+        # val_images_new = val_images_new[0:5] 
         train_context, train_question, train_choice, train_answer, train_images = split_batch(batch_size, train_context_new,train_question_new,train_choice_new,train_answer_new, train_images_new)
         val_context, val_question, val_choice, val_answer, val_images = split_batch(batch_size, val_context_new,val_question_new,val_choice_new,val_answer_new, val_images_new)
 

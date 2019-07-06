@@ -157,16 +157,15 @@ class MultiAttention(nn.Module):
         if self.use_lexical:
             self.lexical_projection_q = nn.Linear(self.dim, self.dim) 
             self.lexical_projection_c= nn.Linear(self.dim, self.dim)
-    def forward(self, answer_hidden, question_output, context_output, context_input, question_input, num_attention=2):
+    def forward(self, question_output, context_output, context_input, question_input, num_attention=2):
 
-        if torch.cuda.is_available():  
-            u = torch.zeros(question_output.size(1), self.dim, requires_grad = True).cuda()
-        else:
-            u = torch.zeros(question_output.size(1), self.dim, requires_grad = True)
+        # if torch.cuda.is_available():  
+        #     u = torch.zeros(question_output.size(1), self.dim, requires_grad = True).cuda()
+        # else:
+        #     u = torch.zeros(question_output.size(1), self.dim, requires_grad = True) 
 
-        for i in range(num_attention):
-            q_new = torch.tanh(self.fc1(u) + self.fc2(answer_hidden) + self.fc3(question_output))
-            q_attention_vector, context_attention_vector, score_c2q, score_q2c = self.attention(q_new, context_output)
+        for i in range(num_attention): 
+            q_attention_vector, context_attention_vector, score_c2q, score_q2c = self.attention(question_output, context_output)
             
 
             if self.use_lexical: 
@@ -213,9 +212,8 @@ class MultiAttention_image(nn.Module):
             u = torch.zeros(question_output.size(1), self.dim, requires_grad = True)
 
         for i in range(num_attention):
-            q_new = torch.tanh(self.fc1(u) + self.fc2(answer_hidden) + self.fc3(question_output))
-            q_attention_vector_c, c_attention_vector_q, score_c2q, score_q2c = self.attention_q_c(q_new, context_output)
-            q_attention_vector_v, v_attention_vector_q, score_v2q, score_q2v = self.attention_q_v(q_new, image_output)
+            q_attention_vector_c, c_attention_vector_q, score_c2q, score_q2c = self.attention_q_c(question_output, context_output)
+            q_attention_vector_v, v_attention_vector_q, score_v2q, score_q2v = self.attention_q_v(question_output, image_output)
             c_attention_vector_v, v_attention_vector_c, score_v2c, score_c2v = self.attention_q_v(context_output, image_output)
 
             if self.use_lexical: 
@@ -264,23 +262,23 @@ class Impatient_Reader_Model(nn.Module):
         input_images = transport_1_0_2_image(input_images) 
         if self.use_image:
             input_images = extract_image_features(input_images, image_path)
-            image_output, _  = self.images(input_images)
+            image_output, _  = self.images(input_images) 
 
         context_output, _, context_input = self.text(input_context)
         question_output, question_final_hidden, question_input = self.question(input_question)
+
+        if self.use_image:
+                u = self.attention_image(question_output, context_output, image_output, context_input, question_input, input_images, self.num_attention)
+            else:
+                u = self.attention(question_output, context_output, context_input, question_input, self.num_attention)
          
         output_choice_list = []
         for i in input_choice:   
-            output_choice, hidden_output_choice = self.choice(i)
-            if self.use_image:
-                u = self.attention_image(hidden_output_choice, question_output, context_output, image_output, context_input, question_input, input_images, self.num_attention)
-            else:
-                u = self.attention(hidden_output_choice, question_output, context_output, context_input, question_input, self.num_attention)
-            q_u = torch.tanh(self.q(question_final_hidden)) + u
-            similarity_scores = torch.sum(torch.mul(q_u, torch.tanh(self.a(hidden_output_choice))), dim=1)
-            # similarity_scores = self.Infersent(g, hidden_output_choice)
-            # similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores))) 
-            # similarity_scores = self.fc4(similarity_scores)
+            output_choice, hidden_output_choice = self.choice(i) 
+
+            similarity_scores = self.Infersent(u, hidden_output_choice) 
+            similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores))) 
+            similarity_scores = self.fc4(similarity_scores)
 
             output_choice_list.append(similarity_scores) 
             
