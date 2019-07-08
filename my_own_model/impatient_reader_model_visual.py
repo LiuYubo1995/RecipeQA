@@ -12,7 +12,7 @@ class WordLevel(nn.Module):
         weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
         self.elmo = Elmo(options_file, weight_file, 1, dropout=0.2, requires_grad = False)
         self.lstm = nn.LSTM(1024, word_hidden_size, num_layers=1, 
-                        bidirectional=True, dropout=0.2)
+                        bidirectional=True, dropout=0.2) 
 
     def forward(self, input):  
         sentences = input
@@ -166,10 +166,9 @@ class MultiAttention(nn.Module):
 
         for i in range(num_attention):
             q_new = torch.tanh(self.fc1(u) + self.fc2(answer_hidden) + self.fc3(question_output))
-            q_attention_vector, context_attention_vector, score_c2q, score_q2c = self.attention(q_new, context_output)
-            
-
-            if self.use_lexical: 
+            q_attention_vector, context_attention_vector, score_c2q, score_q2c = self.attention(q_new, context_output) 
+            #question_input = torch.tanh(self.fc1(u) + self.fc2(answer_hidden) + self.fc3(question_input))
+            if self.use_lexical:        
                 q_lexical = torch.tanh(torch.matmul(score_c2q, question_input.permute(1,0,2))).squeeze(1)
                 c_lexical = torch.tanh(torch.matmul(score_q2c, context_input.permute(1,0,2))).squeeze(1)
                 q_attention_vector = torch.tanh(self.lexical_projection_q(q_lexical)) + q_attention_vector
@@ -193,7 +192,8 @@ class MultiAttention_image(nn.Module):
 
         self.lexical_question = linear_attention(self.dim, self.dim, self.dim)
         self.lexical_context = linear_attention(self.dim, self.dim, self.dim)
-        self.linear = nn.Linear(self.dim*6, self.dim) 
+        #self.linear = nn.Linear(self.dim*6, self.dim) 
+        self.linear = nn.Linear(self.dim*4, self.dim)
         self.use_lexical = use_lexical 
 
         if self.use_lexical:
@@ -216,7 +216,7 @@ class MultiAttention_image(nn.Module):
             q_new = torch.tanh(self.fc1(u) + self.fc2(answer_hidden) + self.fc3(question_output))
             q_attention_vector_c, c_attention_vector_q, score_c2q, score_q2c = self.attention_q_c(q_new, context_output)
             q_attention_vector_v, v_attention_vector_q, score_v2q, score_q2v = self.attention_q_v(q_new, image_output)
-            c_attention_vector_v, v_attention_vector_c, score_v2c, score_c2v = self.attention_q_v(context_output, image_output)
+            #c_attention_vector_v, v_attention_vector_c, score_v2c, score_c2v = self.attention_q_v(context_output, image_output)
 
             if self.use_lexical: 
                 q_lexical_c = torch.tanh(torch.matmul(score_c2q, question_input.permute(1,0,2))).squeeze(1)
@@ -229,12 +229,13 @@ class MultiAttention_image(nn.Module):
                 q_attention_vector_v = torch.tanh(self.lexical_projection_q_v(q_lexical_c)) + q_attention_vector_v
                 v_attention_vector_q = torch.tanh(self.lexical_projection_v_q(v_lexical_q)) + v_attention_vector_q
 
-                v_lexical_c = torch.tanh(torch.matmul(score_c2v, image_input.permute(1,0,2))).squeeze(1)
-                c_lexical_v = torch.tanh(torch.matmul(score_v2c, context_input.permute(1,0,2))).squeeze(1)
-                v_attention_vector_c = torch.tanh(self.lexical_projection_v_c(v_lexical_c)) + v_attention_vector_c
-                c_attention_vector_v = torch.tanh(self.lexical_projection_c_v(c_lexical_v)) + c_attention_vector_v
+                # v_lexical_c = torch.tanh(torch.matmul(score_c2v, image_input.permute(1,0,2))).squeeze(1)
+                # c_lexical_v = torch.tanh(torch.matmul(score_v2c, context_input.permute(1,0,2))).squeeze(1)
+                # v_attention_vector_c = torch.tanh(self.lexical_projection_v_c(v_lexical_c)) + v_attention_vector_c
+                # c_attention_vector_v = torch.tanh(self.lexical_projection_c_v(c_lexical_v)) + c_attention_vector_v
 
-            u = torch.tanh(self.linear(torch.cat((q_attention_vector_c, c_attention_vector_q, q_attention_vector_v, v_attention_vector_q, c_attention_vector_v, v_attention_vector_c), dim=1))) 
+            #u = torch.tanh(self.linear(torch.cat((q_attention_vector_c, c_attention_vector_q, q_attention_vector_v, v_attention_vector_q, c_attention_vector_v, v_attention_vector_c), dim=1)))
+            u = torch.tanh(self.linear(torch.cat((q_attention_vector_c, c_attention_vector_q, q_attention_vector_v, v_attention_vector_q), dim=1)))  
         return u
 
 
@@ -271,7 +272,7 @@ class Impatient_Reader_Model(nn.Module):
          
         output_choice_list = []
         for i in input_choice:   
-            output_choice, hidden_output_choice = self.choice(i)
+            output_choice, hidden_output_choice = self.choice(i) 
             if self.use_image:
                 u = self.attention_image(hidden_output_choice, question_output, context_output, image_output, context_input, question_input, input_images, self.num_attention)
             else:

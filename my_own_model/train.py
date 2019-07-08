@@ -33,7 +33,7 @@ def get_args():
     parser.add_argument("--num_attention", type=int, default=2)
     parser.add_argument("--use_lexical", type = str2bool, default = False) 
     parser.add_argument("--use_image", type = str2bool, default = False)   
-    args = parser.parse_args() 
+    args = parser.parse_args()  
     return args 
 
 def train_run(model, train_context, train_question, train_choice, train_answer, train_images, image_path, optimizer, criterion, batch_size):

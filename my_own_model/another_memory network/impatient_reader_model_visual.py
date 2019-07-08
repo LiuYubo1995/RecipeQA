@@ -153,16 +153,12 @@ class MultiAttention(nn.Module):
         self.lexical_question = linear_attention(self.dim, self.dim, self.dim)
         self.lexical_context = linear_attention(self.dim, self.dim, self.dim)
         self.linear = nn.Linear(self.dim*2, self.dim) 
+        self.linear_u = nn.Linear(self.dim*2, self.dim)
         self.use_lexical = use_lexical
         if self.use_lexical:
             self.lexical_projection_q = nn.Linear(self.dim, self.dim) 
             self.lexical_projection_c= nn.Linear(self.dim, self.dim)
-    def forward(self, question_output, context_output, context_input, question_input, num_attention=2):
-
-        # if torch.cuda.is_available():  
-        #     u = torch.zeros(question_output.size(1), self.dim, requires_grad = True).cuda()
-        # else:
-        #     u = torch.zeros(question_output.size(1), self.dim, requires_grad = True) 
+    def forward(self, question_output, question_hidden, context_output, context_input, question_input, num_attention=2):
 
         for i in range(num_attention): 
             q_attention_vector, context_attention_vector, score_c2q, score_q2c = self.attention(question_output, context_output)
@@ -175,6 +171,8 @@ class MultiAttention(nn.Module):
                 context_attention_vector = torch.tanh(self.lexical_projection_c(c_lexical)) + context_attention_vector
 
             u = torch.tanh(self.linear(torch.cat((q_attention_vector, context_attention_vector), dim=1))) 
+            question_hidden = torch.tanh(self.linear_u(torch.cat((u, question_hidden), dim=1)))
+            
         return u 
 
 class MultiAttention_image(nn.Module):
@@ -205,11 +203,6 @@ class MultiAttention_image(nn.Module):
 
 
     def forward(self, answer_hidden, question_output, context_output, image_output, context_input, question_input, image_input, num_attention=2):
-
-        if torch.cuda.is_available():  
-            u = torch.zeros(question_output.size(1), self.dim, requires_grad = True).cuda()
-        else:
-            u = torch.zeros(question_output.size(1), self.dim, requires_grad = True)
 
         for i in range(num_attention):
             q_attention_vector_c, c_attention_vector_q, score_c2q, score_q2c = self.attention_q_c(question_output, context_output)

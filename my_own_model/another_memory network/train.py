@@ -14,6 +14,13 @@ import argparse
 
 
 def get_args():
+    def str2bool(v):
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Unsupported value encountered.')
     parser = argparse.ArgumentParser("Hasty_student_recipeQA")
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--num_epochs", type=int, default=10)
@@ -24,8 +31,8 @@ def get_args():
     parser.add_argument("--saved_path", type=str, default="trained_models")
     parser.add_argument("--load_model", type=str, default=None)
     parser.add_argument("--num_attention", type=int, default=2)
-    parser.add_argument("--use_lexical", type=str, default=True) 
-    parser.add_argument("--use_image", type=str, default=True)  
+    parser.add_argument("--use_lexical", type = str2bool, default = False) 
+    parser.add_argument("--use_image", type = str2bool, default = False)   
     args = parser.parse_args() 
     return args 
 
@@ -75,6 +82,8 @@ def main(args):
     num_attention = args.num_attention
     use_lexical = args.use_lexical
     use_image = args.use_image
+    print('use_lexical', use_lexical)
+    print('use_image', use_image)
 
     recipe_context, recipe_images, recipe_question, recipe_choice, recipe_answer = load_cleaned_data('train_cleaned.json')
     recipe_context_val, recipe_images_val, recipe_question_val, recipe_choice_val, recipe_answer_val = load_cleaned_data('val_cleaned.json')
