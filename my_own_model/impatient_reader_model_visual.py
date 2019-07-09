@@ -193,7 +193,9 @@ class MultiAttention_image(nn.Module):
         self.lexical_question = linear_attention(self.dim, self.dim, self.dim)
         self.lexical_context = linear_attention(self.dim, self.dim, self.dim)
         #self.linear = nn.Linear(self.dim*6, self.dim) 
-        self.linear = nn.Linear(self.dim*4, self.dim)
+        #self.linear = nn.Linear(self.dim*4, self.dim)
+        self.linear = nn.Linear(self.dim*2, self.dim)
+        self.linear_2 = nn.Linear(self.dim*2, self.dim)
         self.use_lexical = use_lexical 
 
         if self.use_lexical:
@@ -212,11 +214,13 @@ class MultiAttention_image(nn.Module):
         else:
             u = torch.zeros(question_output.size(1), self.dim, requires_grad = True)
 
+
+        c_attention_vector_v, v_attention_vector_c, score_v2c, score_c2v = self.attention_q_v(context_output, image_output)
         for i in range(num_attention):
             q_new = torch.tanh(self.fc1(u) + self.fc2(answer_hidden) + self.fc3(question_output))
             q_attention_vector_c, c_attention_vector_q, score_c2q, score_q2c = self.attention_q_c(q_new, context_output)
-            q_attention_vector_v, v_attention_vector_q, score_v2q, score_q2v = self.attention_q_v(q_new, image_output)
-            #c_attention_vector_v, v_attention_vector_c, score_v2c, score_c2v = self.attention_q_v(context_output, image_output)
+            #q_attention_vector_v, v_attention_vector_q, score_v2q, score_q2v = self.attention_q_v(q_new, image_output)
+            # c_attention_vector_v, v_attention_vector_c, score_v2c, score_c2v = self.attention_q_v(context_output, image_output)
 
             if self.use_lexical: 
                 q_lexical_c = torch.tanh(torch.matmul(score_c2q, question_input.permute(1,0,2))).squeeze(1)
@@ -229,14 +233,16 @@ class MultiAttention_image(nn.Module):
                 q_attention_vector_v = torch.tanh(self.lexical_projection_q_v(q_lexical_c)) + q_attention_vector_v
                 v_attention_vector_q = torch.tanh(self.lexical_projection_v_q(v_lexical_q)) + v_attention_vector_q
 
-                # v_lexical_c = torch.tanh(torch.matmul(score_c2v, image_input.permute(1,0,2))).squeeze(1)
-                # c_lexical_v = torch.tanh(torch.matmul(score_v2c, context_input.permute(1,0,2))).squeeze(1)
-                # v_attention_vector_c = torch.tanh(self.lexical_projection_v_c(v_lexical_c)) + v_attention_vector_c
-                # c_attention_vector_v = torch.tanh(self.lexical_projection_c_v(c_lexical_v)) + c_attention_vector_v
+                v_lexical_c = torch.tanh(torch.matmul(score_c2v, image_input.permute(1,0,2))).squeeze(1)
+                c_lexical_v = torch.tanh(torch.matmul(score_v2c, context_input.permute(1,0,2))).squeeze(1)
+                v_attention_vector_c = torch.tanh(self.lexical_projection_v_c(v_lexical_c)) + v_attention_vector_c
+                c_attention_vector_v = torch.tanh(self.lexical_projection_c_v(c_lexical_v)) + c_attention_vector_v
 
             #u = torch.tanh(self.linear(torch.cat((q_attention_vector_c, c_attention_vector_q, q_attention_vector_v, v_attention_vector_q, c_attention_vector_v, v_attention_vector_c), dim=1)))
-            u = torch.tanh(self.linear(torch.cat((q_attention_vector_c, c_attention_vector_q, q_attention_vector_v, v_attention_vector_q), dim=1)))  
-        return u
+            #u = torch.tanh(self.linear(torch.cat((q_attention_vector_c, c_attention_vector_q, q_attention_vector_v, v_attention_vector_q), dim=1)))  
+            u = torch.tanh(self.linear(torch.cat((q_attention_vector_c, c_attention_vector_q), dim=1))) 
+        u_c_v = torch.tanh(self.linear_2(torch.cat((c_attention_vector_v, v_attention_vector_c), dim=1))) 
+        return u, u_c_v 
 
 
 class Impatient_Reader_Model(nn.Module):       
@@ -274,14 +280,18 @@ class Impatient_Reader_Model(nn.Module):
         for i in input_choice:   
             output_choice, hidden_output_choice = self.choice(i) 
             if self.use_image:
-                u = self.attention_image(hidden_output_choice, question_output, context_output, image_output, context_input, question_input, input_images, self.num_attention)
+                u, u_c_v = self.attention_image(hidden_output_choice, question_output, context_output, image_output, context_input, question_input, input_images, self.num_attention)
             else:
                 u = self.attention(hidden_output_choice, question_output, context_output, context_input, question_input, self.num_attention)
             q_u = torch.tanh(self.q(question_final_hidden)) + u
             similarity_scores = torch.sum(torch.mul(q_u, torch.tanh(self.a(hidden_output_choice))), dim=1)
+
+            q_u_v = torch.tanh(self.q(question_final_hidden)) + u_c_v
+            similarity_scores_v = torch.sum(torch.mul(q_u_v, torch.tanh(self.a(hidden_output_choice))), dim=1)
             # similarity_scores = self.Infersent(g, hidden_output_choice)
             # similarity_scores = self.dropout(torch.tanh(self.fc3(similarity_scores))) 
             # similarity_scores = self.fc4(similarity_scores)
+            similarity_scores = similarity_scores * 0.9 + similarity_scores_v * 0.1
 
             output_choice_list.append(similarity_scores) 
             

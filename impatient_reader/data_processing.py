@@ -166,10 +166,10 @@ def process(string):
     string = replace_typical_misspell(string)
     string = re.sub(r"[^a-zA-Z0-9]"," ",string)
     string = string.lower()
-    string = string.split()
+    string = string.split() 
     #string = [w for w in string if w not in stopwords.words('english')]
     #string = [PorterStemmer().stem(w) for w in string] 
-    return string
+    return string 
 
 def process_data(from_file='train_text_cloze.json' , tofile='train_cleaned'):
     from_file = open(from_file, 'r', encoding='utf8').read()
