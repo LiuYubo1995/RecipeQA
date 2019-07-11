@@ -113,7 +113,7 @@ def extract_image_features(batch_images, feature):
                 temp = np.zeros((1,1,1000)).tolist()
             for z in j:
                 temp.append(feature[z])
-            temp2.append(np.sum(temp, axis = 0))
+            temp2.append(np.mean(temp, axis = 0))
         batch.append(temp2)
     if torch.cuda.is_available():
         batch = torch.FloatTensor(batch).squeeze(2).cuda()

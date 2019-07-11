@@ -83,7 +83,7 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr = lr, weight_decay=0.0001)
     criterion = nn.CrossEntropyLoss()
-
+    print('debugdebugdebug')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     model = model.to(device)
