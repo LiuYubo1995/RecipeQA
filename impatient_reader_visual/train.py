@@ -97,11 +97,11 @@ def main(args):
         train_context_new,train_question_new,train_choice_new,train_answer_new, train_images_new = shuffle_data(recipe_context,recipe_question,recipe_choice,recipe_answer, recipe_images)
         val_context_new,val_question_new,val_choice_new,val_answer_new, val_images_new = shuffle_data(recipe_context_val,recipe_question_val,recipe_choice_val,recipe_answer_val, recipe_images_val)
         
-        train_context_new = train_context_new[0:15]
-        train_question_new = train_question_new[0:15]
-        train_choice_new = train_choice_new[0:15]
-        train_answer_new = train_answer_new[0:15]
-        train_images_new = train_images_new[0:15]
+        # train_context_new = train_context_new[0:15]
+        # train_question_new = train_question_new[0:15]
+        # train_choice_new = train_choice_new[0:15]
+        # train_answer_new = train_answer_new[0:15]
+        # train_images_new = train_images_new[0:15]
         train_context, train_question, train_choice, train_answer, train_images = split_batch(batch_size, train_context_new,train_question_new,train_choice_new,train_answer_new, train_images_new)
         val_context, val_question, val_choice, val_answer, val_images = split_batch(batch_size, val_context_new,val_question_new,val_choice_new,val_answer_new, val_images_new)
 
